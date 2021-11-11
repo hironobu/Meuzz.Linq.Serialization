@@ -90,11 +90,14 @@ namespace Meuzz.Linq.Serialization.Expressions
         }
     }*/
 
-    public abstract class ExpressionData
+    [Serializable]
+    public class ExpressionData
     {
         public bool? CanReduce { get; set; }
         public ExpressionType? NodeType { get; set; }
         public TypeData? Type { get; set; }
+        
+        public ExpressionData() { }
 
         public static ExpressionData Pack(Expression e)
         {
@@ -129,9 +132,10 @@ namespace Meuzz.Linq.Serialization.Expressions
             }
         }
 
-        public abstract Expression Unpack();
+        public virtual Expression Unpack() { throw new NotImplementedException(); }
     }
 
+    [Serializable]
     public class LambdaExpressionData : ExpressionData
     {
         public ExpressionData? Body { get; set; }
@@ -139,6 +143,8 @@ namespace Meuzz.Linq.Serialization.Expressions
         public IEnumerable<ParameterExpressionData>? Parameters { get; set; }
         public TypeData? ReturnType { get; set; }
         public bool? TailCall { get; set; }
+
+        public LambdaExpressionData() : base() { }
 
         public static LambdaExpressionData Pack(LambdaExpression le)
         {
@@ -167,6 +173,8 @@ namespace Meuzz.Linq.Serialization.Expressions
     {
         public bool? IsByRef { get; set; }
         public string? Name { get; set; }
+
+        public ParameterExpressionData() { }
 
         public static ParameterExpressionData Pack(ParameterExpression pe)
         {
@@ -221,6 +229,8 @@ namespace Meuzz.Linq.Serialization.Expressions
         //[DataMember]
         public ExpressionData? Right { get; set; }
 
+        public BinaryExpressionData() { }
+
         public static BinaryExpressionData Pack(BinaryExpression bine)
         {
             var data = new BinaryExpressionData();
@@ -258,6 +268,8 @@ namespace Meuzz.Linq.Serialization.Expressions
         //[DataMember]
         public MemberInfoData? Member { get; set; }
 
+        public MemberExpressionData() { }
+
         public static MemberExpressionData Pack(MemberExpression membe)
         {
             var data = new MemberExpressionData();
@@ -290,6 +302,8 @@ namespace Meuzz.Linq.Serialization.Expressions
         //[DataMember]
         public IDictionary<string, object>? CustomTypeValue { get; set; }
 
+        public ConstantExpressionData() { }
+
         public static ConstantExpressionData Pack(ConstantExpression ce)
         {
             var data = new ConstantExpressionData();
@@ -319,6 +333,8 @@ namespace Meuzz.Linq.Serialization.Expressions
         public MethodInfoData? Method { get; set; }
         //[DataMember]
         public ExpressionData? Object { get; set; }
+
+        public MethodCallExpressionData() { }
 
         public static MethodCallExpressionData Pack(MethodCallExpression mce)
         {
@@ -361,6 +377,8 @@ namespace Meuzz.Linq.Serialization.Expressions
         //[DataMember]
         public ConstructorInfoData? ConstructorInfo;
 
+        public NewExpressionData() { }
+
         public static NewExpressionData Pack(NewExpression ne)
         {
             var data = new NewExpressionData();
@@ -387,6 +405,8 @@ namespace Meuzz.Linq.Serialization.Expressions
     {
         //[DataMember]
         public IEnumerable<ExpressionData>? Expressions;
+
+        public NewArrayExpressionData() { }
 
         public static NewArrayExpressionData Pack(NewArrayExpression nae)
         {

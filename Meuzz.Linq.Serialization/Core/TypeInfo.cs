@@ -53,7 +53,7 @@ namespace Meuzz.Linq.Serialization.Core
             return typeBuilder.CreateType();
         }
 
-        private Type? ConstructGenericType(string assemblyQualifiedName)
+        private Type? ConstructGenericType(string assemblyQualifiedName, (string, Type)[] fieldSpecs)
         {
             Regex regex = new Regex(@"^(?<name>\w+(\.\w+)*)`(?<count>\d)\[(?<subtypes>\[.*\])\](, (?<assembly>\w+(\.\w+)*)[\w\s,=\.]+)$?", RegexOptions.Singleline | RegexOptions.ExplicitCapture);
             Match match = regex.Match(assemblyQualifiedName);
@@ -68,7 +68,7 @@ namespace Meuzz.Linq.Serialization.Core
             var subtypes = match.Groups["subtypes"].Value;
 
             typeName = typeName + $"`{n}";
-            var genericType = ReconstructType(typeName);
+            var genericType = ReconstructType(typeName, fieldSpecs);
             if (genericType == null) return null;
 
             List<string> typeNames = new List<string>();
@@ -111,7 +111,7 @@ namespace Meuzz.Linq.Serialization.Core
             {
                 try
                 {
-                    var t = ReconstructType(typeNames[i]);
+                    var t = ReconstructType(typeNames[i], fieldSpecs);
                     if (t == null)
                     {
                         // if throwOnError, should not reach this point if couldn't create the type
@@ -129,7 +129,7 @@ namespace Meuzz.Linq.Serialization.Core
             return genericType.MakeGenericType(types);
         }
 
-        public Type ReconstructType(string assemblyQualifiedName)
+        public Type ReconstructType(string assemblyQualifiedName, (string, Type)[] fieldSpecs)
         {
             Type? type = null;
 
@@ -149,7 +149,7 @@ namespace Meuzz.Linq.Serialization.Core
             {
                 if (assemblyQualifiedName.Contains("[["))
                 {
-                    type = ConstructGenericType(assemblyQualifiedName);
+                    type = ConstructGenericType(assemblyQualifiedName, fieldSpecs);
                 }
                 else
                 {
@@ -160,7 +160,7 @@ namespace Meuzz.Linq.Serialization.Core
             if (type == null)
             {
                 var fullNameWithoutAssemblyName = assemblyQualifiedName.Split(",").First();
-                type = CreateType(fullNameWithoutAssemblyName, new[] { ("s", typeof(string)), ("ss", typeof(string[])), ("d", typeof(Dictionary<string, string>)) }, null);
+                type = CreateType(fullNameWithoutAssemblyName, fieldSpecs, null);
             }
 
             return type;
@@ -182,6 +182,8 @@ namespace Meuzz.Linq.Serialization.Core
         [DataMember]
         public string? FullQualifiedTypeString { get; set; }
 
+        public (string, Type)[] FieldSpecifications { get; set; } = new (string, Type)[] { };
+
         public static TypeData Pack(Type t)
         {
             if (t.AssemblyQualifiedName == null || t.FullName == null)
@@ -193,6 +195,8 @@ namespace Meuzz.Linq.Serialization.Core
 
             //data.FullQualifiedTypeString = _typeDataManager.GetShortName(t.AssemblyQualifiedName);
             data.FullQualifiedTypeString = t.AssemblyQualifiedName.Replace("+", "__");
+            //data.FieldSpecifications = new[] { ("s", typeof(string)), ("ss", typeof(string[])), ("d", typeof(Dictionary<string, string>)) };
+            data.FieldSpecifications = t.GetFields().Select(x => (x.Name, x.FieldType)).ToArray();
 
             return data;
         }
@@ -200,7 +204,7 @@ namespace Meuzz.Linq.Serialization.Core
         public Type Unpack()
         {
             // return ReconstructType(_typeDataManager.GetLongName(FullQualifiedTypeString!));
-            return _typeDataManager.ReconstructType(FullQualifiedTypeString!);
+            return _typeDataManager.ReconstructType(FullQualifiedTypeString!, FieldSpecifications);
         }
 
         public static TypeDataManager TypeDataManager { get => _typeDataManager; }

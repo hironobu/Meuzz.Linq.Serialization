@@ -1,5 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
+using System.Text;
 using Meuzz.Linq.Serialization.Core;
 using Meuzz.Linq.Serialization.Expressions;
 using Newtonsoft.Json;
@@ -12,16 +17,42 @@ namespace Meuzz.Linq.Serialization
         public override void BindToName(
             Type serializedType, out string? assemblyName, out string? typeName)
         {
+            if (serializedType.GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Any())
+            {
+                var fields = serializedType.GetFields();
+                assemblyName = null;
+
+                var sb = new StringBuilder();
+
+                sb.Append("###" + serializedType.FullName + "###");
+
+                foreach (var f in fields)
+                {
+                    sb.Append(":" + f.Name + "/" + f.FieldType.FullName);
+                }
+
+                typeName = sb.ToString();
+
+                return;
+            }
             base.BindToName(serializedType, out assemblyName, out typeName);
         }
 
         public override Type BindToType(string? assemblyName, string fullTypeName)
         {
-            if (fullTypeName.IndexOf("DisplayClass") != -1)
+            if (fullTypeName.StartsWith("###"))
             {
                 try
                 {
-                    var t = TypeData.TypeDataManager.ReconstructType(fullTypeName.Replace("+", "__"));
+                    var ts = fullTypeName.Split("###");
+
+                    var fs = ts[2].Split(":").Skip(1).Select(x =>
+                    {
+                        var xs = x.Split("/");
+                        return (xs[0], Type.GetType(xs[1])!);
+                    }).ToArray();
+
+                    var t = TypeData.TypeDataManager.ReconstructType(ts[1].Replace("+", "__"), fs);
                     if (t == null)
                     {
                         throw new NotImplementedException();

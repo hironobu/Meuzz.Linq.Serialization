@@ -90,7 +90,6 @@ namespace Meuzz.Linq.Serialization.Expressions
         }
     }*/
 
-    [Serializable]
     public class ExpressionData
     {
         public bool? CanReduce { get; set; }
@@ -135,7 +134,6 @@ namespace Meuzz.Linq.Serialization.Expressions
         public virtual Expression Unpack() { throw new NotImplementedException(); }
     }
 
-    [Serializable]
     public class LambdaExpressionData : ExpressionData
     {
         public ExpressionData? Body { get; set; }
@@ -212,21 +210,13 @@ namespace Meuzz.Linq.Serialization.Expressions
         private static readonly Lazy<Dictionary<(Type, string), ParameterExpression>> _instance = new Lazy<Dictionary<(Type, string), ParameterExpression>>();
     }
 
-    //[DataContract]
-    [Serializable]
     public class BinaryExpressionData : ExpressionData
     {
-        //[DataMember]
         public LambdaExpressionData? Conversion { get; set; }
-        //[DataMember]
         public bool IsLifted { get; set; }
-        //[DataMember]
         public bool IsLiftedToNull { get; set; }
-        //[DataMember]
         public ExpressionData? Left { get; set; }
-        //[DataMember]
         public MethodInfoData? Method { get; set; }
-        //[DataMember]
         public ExpressionData? Right { get; set; }
 
         public BinaryExpressionData() { }
@@ -259,15 +249,10 @@ namespace Meuzz.Linq.Serialization.Expressions
         }
     }
 
-    //[DataContract]
-    [Serializable]
     public class MemberExpressionData : ExpressionData
     {
-        //[DataMember]
         public ExpressionData? Expression { get; set; }
-        //[DataMember]
         public MemberInfoData? Member { get; set; }
-
         public MemberExpressionData() { }
 
         public static MemberExpressionData Pack(MemberExpression membe)
@@ -287,19 +272,15 @@ namespace Meuzz.Linq.Serialization.Expressions
         public override Expression Unpack()
         {
             var e = Expression!.Unpack();
-            return System.Linq.Expressions.Expression.MakeMemberAccess(e, Member!.Unpack());
+            var memberInfo = Member!.Unpack();
+            return System.Linq.Expressions.Expression.MakeMemberAccess(e, memberInfo);
         }
     }
 
-    //[DataContract]
-    [Serializable]
     public class ConstantExpressionData : ExpressionData
     {
-        //[DataMember]
         public object? Value { get; set; }
-        //[DataMember]
         public string? CustomTypeString { get; set; }
-        //[DataMember]
         public IDictionary<string, object>? CustomTypeValue { get; set; }
 
         public ConstantExpressionData() { }
@@ -313,7 +294,7 @@ namespace Meuzz.Linq.Serialization.Expressions
             data.Type = TypeData.Pack(ce.Type);
 
             data.Value = ce.Value;
-
+    
             return data;
         }
 
@@ -323,15 +304,10 @@ namespace Meuzz.Linq.Serialization.Expressions
         }
     }
 
-    //[DataContract]
-    [Serializable]
     public class MethodCallExpressionData : ExpressionData
     {
-        //[DataMember]
         public IEnumerable<ExpressionData>? Arguments { get; set; }
-        //[DataMember]
         public MethodInfoData? Method { get; set; }
-        //[DataMember]
         public ExpressionData? Object { get; set; }
 
         public MethodCallExpressionData() { }
@@ -367,15 +343,10 @@ namespace Meuzz.Linq.Serialization.Expressions
         }
     }
 
-    //[DataContract]
-    [Serializable]
     public class NewExpressionData : ExpressionData
     {
-        //[DataMember]
-        public IEnumerable<ExpressionData>? Arguments;
-
-        //[DataMember]
-        public ConstructorInfoData? ConstructorInfo;
+        public IEnumerable<ExpressionData>? Arguments { get; set; }
+        public ConstructorInfoData? ConstructorInfo { get; set; }
 
         public NewExpressionData() { }
 
@@ -399,12 +370,9 @@ namespace Meuzz.Linq.Serialization.Expressions
         }
     }
 
-    //[DataContract]
-    [Serializable]
     public class NewArrayExpressionData : ExpressionData
     {
-        //[DataMember]
-        public IEnumerable<ExpressionData>? Expressions;
+        public IEnumerable<ExpressionData>? Expressions { get; set; }
 
         public NewArrayExpressionData() { }
 

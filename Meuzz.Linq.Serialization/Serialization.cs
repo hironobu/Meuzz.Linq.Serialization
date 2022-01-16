@@ -1,11 +1,11 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Runtime.Serialization.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Meuzz.Linq.Serialization.Core;
@@ -13,6 +13,110 @@ using Meuzz.Linq.Serialization.Expressions;
 
 namespace Meuzz.Linq.Serialization
 {
+    public class JsonDataJsonConverter : JsonConverter<JsonData>
+    {
+        public override bool CanConvert(Type typeToConvert)
+        {
+            return typeof(JsonData).IsAssignableFrom(typeToConvert);
+        }
+
+        public override JsonData Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
+            {
+                throw new JsonException();
+            }
+
+            if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "$type")
+            {
+                throw new JsonException();
+            }
+            if (!reader.Read() || reader.TokenType != JsonTokenType.String)
+            {
+                throw new JsonException();
+            }
+            var type = reader.GetString();
+
+            var data = new Dictionary<string, object>();
+            while (true)
+            {
+                if (!reader.Read())
+                {
+                    throw new JsonException();
+                }
+
+                if (reader.TokenType == JsonTokenType.EndObject)
+                {
+                    break;
+                }
+
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                {
+                    throw new JsonException();
+                }
+            }
+
+            return new JsonData()
+            {
+                Type = type,
+                Data = data,
+            };
+        }
+
+        public override void Write(Utf8JsonWriter writer, JsonData value, JsonSerializerOptions options) => throw new NotImplementedException();
+    }
+
+    public class AnyObjectJsonConverter<T> : JsonConverter<T> where T : notnull
+    {
+        public override bool CanConvert(Type typeToConvert)
+        {
+            return typeof(T).IsAssignableFrom(typeToConvert);
+        }
+
+        public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("$type", value.GetType().FullName);
+            foreach (var f in value.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic))
+            {
+                writer.WritePropertyName(f.Name);
+                var v = f.GetValue(value);
+                if (v == null)
+                {
+                    writer.WriteNullValue();
+                }
+                else
+                {
+                    switch (v)
+                    {
+                        case int n:
+                            writer.WriteNumberValue(n);
+                            break;
+                        case long l:
+                            writer.WriteNumberValue(l);
+                            break;
+                        case DateTime dt:
+                            writer.WriteStringValue(dt);
+                            break;
+                        case string s:
+                            writer.WriteStringValue(s);
+                            break;
+                        default:
+                            JsonSerializer.Serialize(v, v.GetType(), options);
+                            break;
+                    }
+                }
+            }
+            writer.WriteEndObject();
+        }
+    }
+
+
     public class TypeDataJsonConverter : JsonConverter<TypeData>
     {
         public override bool CanConvert(Type typeToConvert)
@@ -490,6 +594,7 @@ namespace Meuzz.Linq.Serialization
                             throw new JsonException();
                         }
 
+                        /*
                         object? value = null;
                         switch (reader.TokenType)
                         {
@@ -509,7 +614,8 @@ namespace Meuzz.Linq.Serialization
                                     }
                                 }
                                 break;
-                        }
+                        }*/
+                        var value = JsonSerializer.Deserialize<JsonData>(ref reader, options);
 
                         retval = new ConstantExpressionData()
                         {
@@ -644,7 +750,7 @@ namespace Meuzz.Linq.Serialization
                             {
                                 writer.WritePropertyName(f.Name);
                                 var v = f.GetValue(ce.Value);
-                                JsonSerializer.Serialize(writer, v);
+                                JsonSerializer.Serialize(writer, v, options);
                             }
                             writer.WriteEndObject();
                         }
@@ -727,7 +833,9 @@ namespace Meuzz.Linq.Serialization
             options.Converters.Add(new MethodInfoDataJsonConverter());
 
             var s = JsonSerializer.Serialize(data, data.GetType(), options);
+            var s2 = JsonSerializer.Serialize(TypeData.TypeDataManager.TypeNameTable, options);
             Debug.WriteLine($"serialized: {s}");
+            Debug.WriteLine($"serialized: {s2}");
 
             return s;
         }

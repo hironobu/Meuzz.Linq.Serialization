@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text.Json;
 using Xunit;
 
 namespace Meuzz.Linq.Serialization.Tests
@@ -21,7 +19,7 @@ namespace Meuzz.Linq.Serialization.Tests
             var ff = JsonNetSerializer.Deserialize<Func<SampleItem, bool>>(data);
 #endif
 
-            var ret = ff.Compile()(obj);
+            var ret = ff(obj);
 
             Assert.Equal(expected, ret);
         }

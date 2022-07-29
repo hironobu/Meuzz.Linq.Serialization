@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Text;
 using Meuzz.Linq.Serialization.Expressions;
 using Newtonsoft.Json;
 using Xunit;
@@ -49,9 +47,7 @@ namespace Meuzz.Linq.Serialization.Tests
 
             var obj = new SampleItem(1, "bbb");
 
-            var compiled = ff.Compile();
-
-            var ret = compiled(obj);
+            var ret = ff(obj);
 
             Assert.True(ret);
         }
@@ -66,9 +62,7 @@ namespace Meuzz.Linq.Serialization.Tests
 
             var obj = new SampleItem(1, "bbb");
 
-            var compiled = ff.Compile();
-
-            var ret = compiled(obj);
+            var ret = ff(obj);
 
             Assert.True(ret);
         }

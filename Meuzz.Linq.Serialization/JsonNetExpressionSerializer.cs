@@ -97,7 +97,7 @@ namespace Meuzz.Linq.Serialization
             return s;
         }
 
-        public static Expression<T> Deserialize<T>(object o) where T : Delegate
+        public static T Deserialize<T>(object o) where T : Delegate
         {
             var data2 = JsonConvert.DeserializeObject<ExpressionData>((string)o, new JsonSerializerSettings()
             {
@@ -105,7 +105,7 @@ namespace Meuzz.Linq.Serialization
                 SerializationBinder = new CustomSerializationBinder() 
             });
 
-            return (Expression<T>)data2!.Unpack();
+            return ((Expression<T>)data2!.Unpack()).Compile();
         }
     }
 }

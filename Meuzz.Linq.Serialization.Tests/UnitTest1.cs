@@ -17,9 +17,9 @@ namespace Meuzz.Linq.Serialization.Tests
 
             var ff = (Func<SampleItem, bool>)ExpressionSerializer.Deserialize(data);
 #else
-#endif
             var data = JsonNetSerializer.Serialize(f);
             var ff = JsonNetSerializer.Deserialize<Func<SampleItem, bool>>(data);
+#endif
 
             var ret = ff.Compile()(obj);
 
@@ -44,7 +44,7 @@ namespace Meuzz.Linq.Serialization.Tests
         {
             var obj = new SampleItem(11, "bbb");
 
-            TryTest(x => x.Name == obj.Name, new SampleItem(1, "bbb"), false);
+            TryTest(x => x.Name == obj.Name, new SampleItem(1, "bbb"), true);
         }
 
         [Fact]
@@ -74,6 +74,7 @@ namespace Meuzz.Linq.Serialization.Tests
             TryTest(x => ss.Contains(x.Name), new SampleItem(1, "bbb"), true);
         }
 
+#if falses
         [Fact]
         public void TestNestedClass()
         {
@@ -86,11 +87,10 @@ namespace Meuzz.Linq.Serialization.Tests
 
         }
 
-        
-
         static string GetSampleValue(SampleItem x)
         {
             return x.Name;
         }
+#endif
     }
 }

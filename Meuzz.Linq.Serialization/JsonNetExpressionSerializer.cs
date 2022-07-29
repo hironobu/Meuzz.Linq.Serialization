@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Meuzz.Linq.Serialization.Core;
@@ -28,7 +29,7 @@ namespace Meuzz.Linq.Serialization
 
                 foreach (var f in fields)
                 {
-                    sb.Append(":" + f.Name + "/" + f.FieldType.FullName);
+                    sb.Append($":{f.Name}/{f.FieldType.AssemblyQualifiedName}");
                 }
 
                 typeName = sb.ToString();
@@ -44,15 +45,15 @@ namespace Meuzz.Linq.Serialization
             {
                 try
                 {
-                    var ts = fullTypeName.Split("###");
+                    var ts = fullTypeName.Split("###").Where(t => !string.IsNullOrEmpty(t)).ToArray();
 
-                    var fs = ts[2].Split(":").Skip(1).Select(x =>
+                    var fs = ts[1].Split(":").Skip(1).Select(x =>
                     {
                         var xs = x.Split("/");
-                        return (xs[0], Type.GetType(xs[1])!);
+                        return (xs[0], GetTypeFromFullName(xs[1])!);
                     }).ToArray();
 
-                    var t = TypeData.TypeDataManager.ReconstructType(ts[1].Replace("+", "__"), fs);
+                    var t = TypeData.TypeDataManager.ReconstructType(ts[0].Replace("+", "__"), fs);
                     if (t == null)
                     {
                         throw new NotImplementedException();
@@ -65,6 +66,19 @@ namespace Meuzz.Linq.Serialization
                 }
             }
             return base.BindToType(assemblyName, fullTypeName);
+        }
+
+        private Type? GetTypeFromFullName(string fullTypeName)
+        {
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                var type = assembly.GetType(fullTypeName);
+                if (type != null)
+                {
+                    return type;
+                }
+            }
+            return null;
         }
     }
 

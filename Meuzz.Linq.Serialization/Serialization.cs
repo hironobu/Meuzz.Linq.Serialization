@@ -594,7 +594,6 @@ namespace Meuzz.Linq.Serialization
                             throw new JsonException();
                         }
 
-                        /*
                         object? value = null;
                         switch (reader.TokenType)
                         {
@@ -607,15 +606,15 @@ namespace Meuzz.Linq.Serialization
                                 break;
 
                             default:
-                                {
+                                /*{
                                     if (!reader.Read() || reader.TokenType != JsonTokenType.EndObject)
                                     {
                                         throw new NotImplementedException();
                                     }
-                                }
+                                }*/
+                                value = JsonSerializer.Deserialize<JsonData>(ref reader, options);
                                 break;
-                        }*/
-                        var value = JsonSerializer.Deserialize<JsonData>(ref reader, options);
+                        }
 
                         retval = new ConstantExpressionData()
                         {

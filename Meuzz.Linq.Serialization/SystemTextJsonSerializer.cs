@@ -24,7 +24,7 @@ namespace Meuzz.Linq.Serialization
             options.Converters.Add(new MethodInfoDataJsonConverter(typeDataManager));
 
             var s = JsonSerializer.Serialize(data, data.GetType(), options);
-            var s2 = JsonSerializer.Serialize(TypeData.TypeDataManager.TypeNameTable, options);
+            var s2 = JsonSerializer.Serialize(typeDataManager.TypeNameTable, options);
             Debug.WriteLine($"serialized: {s}");
             Debug.WriteLine($"serialized: {s2}");
 
@@ -41,7 +41,7 @@ namespace Meuzz.Linq.Serialization
 
             var data2 = (ExpressionData)JsonSerializer.Deserialize((string)obj, typeof(ExpressionData), options);
 
-            var t2 = (LambdaExpression)data2.Unpack();
+            var t2 = (LambdaExpression)data2.Unpack(typeDataManager);
 
             return (T)t2.Compile();
         }

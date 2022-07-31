@@ -131,7 +131,7 @@ namespace Meuzz.Linq.Serialization.Expressions
             }
         }
 
-        public virtual Expression Unpack() { throw new NotImplementedException(); }
+        public virtual Expression Unpack(TypeDataManager typeDataManager) { throw new NotImplementedException(); }
     }
 
     public class LambdaExpressionData : ExpressionData
@@ -161,9 +161,9 @@ namespace Meuzz.Linq.Serialization.Expressions
             return data;
         }
 
-        public override Expression Unpack()
+        public override Expression Unpack(TypeDataManager typeDataManager)
         {
-            return Expression.Lambda(Body!.Unpack(), Name, (bool)TailCall!, Parameters.Select(x => (ParameterExpression)x.Unpack()!));
+            return Expression.Lambda(Body!.Unpack(typeDataManager), Name, (bool)TailCall!, Parameters.Select(x => (ParameterExpression)x.Unpack(typeDataManager)!));
         }
     }
 
@@ -188,11 +188,11 @@ namespace Meuzz.Linq.Serialization.Expressions
             return data;
         }
 
-        public override Expression Unpack()
+        public override Expression Unpack(TypeDataManager typeDataManager)
         {
             lock (Instance)
             {
-                var t = TypeData.FromName(Type!).Unpack();
+                var t = typeDataManager.UnpackFromName(Type!);
 
                 if (Instance.TryGetValue((t, Type!), out var value))
                 {
@@ -239,13 +239,13 @@ namespace Meuzz.Linq.Serialization.Expressions
             return data;
         }
 
-        public override Expression Unpack()
+        public override Expression Unpack(TypeDataManager typeDataManager)
         {
             if (Conversion != null)
             {
                 // return Expression.MakeBinary((ExpressionType)(NodeType!), Left!.Unpack(), Right!.Unpack(), IsLiftedToNull, Method.Unpack(), (LambdaExpression)Conversion.Unpack());
             }
-            return Expression.MakeBinary((ExpressionType)(NodeType!), Left!.Unpack(), Right!.Unpack()); //, IsLiftedToNull, Method.Unpack());
+            return Expression.MakeBinary((ExpressionType)(NodeType!), Left!.Unpack(typeDataManager), Right!.Unpack(typeDataManager)); //, IsLiftedToNull, Method.Unpack());
         }
     }
 
@@ -269,10 +269,10 @@ namespace Meuzz.Linq.Serialization.Expressions
             return data;
         }
 
-        public override Expression Unpack()
+        public override Expression Unpack(TypeDataManager typeDataManager)
         {
-            var e = Expression!.Unpack();
-            var memberInfo = Member!.Unpack();
+            var e = Expression!.Unpack(typeDataManager);
+            var memberInfo = Member!.Unpack(typeDataManager);
             return System.Linq.Expressions.Expression.MakeMemberAccess(e, memberInfo);
         }
     }
@@ -298,7 +298,7 @@ namespace Meuzz.Linq.Serialization.Expressions
             return data;
         }
 
-        public override Expression Unpack()
+        public override Expression Unpack(TypeDataManager typeDataManager)
         {
             return Expression.Constant(Value);
         }
@@ -327,17 +327,17 @@ namespace Meuzz.Linq.Serialization.Expressions
             return data;
         }
 
-        public override Expression Unpack()
+        public override Expression Unpack(TypeDataManager typeDataManager)
         {
-            var o = Object?.Unpack();
+            var o = Object?.Unpack(typeDataManager);
             if (o != null)
             {
-                return Expression.Call(o, Method!.Unpack(), Arguments.Select(x => x.Unpack()!)!);
+                return Expression.Call(o, Method!.Unpack(typeDataManager), Arguments.Select(x => x.Unpack(typeDataManager)!)!);
             }
             else
             {
-                var method = Method!.Unpack();
-                var args = Arguments.Select(x => x.Unpack()!)!;
+                var method = Method!.Unpack(typeDataManager);
+                var args = Arguments.Select(x => x.Unpack(typeDataManager)!)!;
                 return Expression.Call(method, args);
             }
         }
@@ -364,9 +364,9 @@ namespace Meuzz.Linq.Serialization.Expressions
             return data;
         }
 
-        public override Expression Unpack()
+        public override Expression Unpack(TypeDataManager typeDataManager)
         {
-            return Expression.New(ConstructorInfo?.Unpack()!, Arguments?.Select(x => x.Unpack()));
+            return Expression.New(ConstructorInfo?.Unpack(typeDataManager)!, Arguments?.Select(x => x.Unpack(typeDataManager)));
         }
     }
 
@@ -392,10 +392,10 @@ namespace Meuzz.Linq.Serialization.Expressions
             return data;
         }
 
-        public override Expression Unpack()
+        public override Expression Unpack(TypeDataManager typeDataManager)
         {
-            var t = TypeData.FromName(Type!).Unpack();
-            return Expression.NewArrayInit(t, Expressions.Select(x => x.Unpack()!));
+            var t = typeDataManager.UnpackFromName(Type!);
+            return Expression.NewArrayInit(t, Expressions.Select(x => x.Unpack(typeDataManager)!));
         }
     }
 

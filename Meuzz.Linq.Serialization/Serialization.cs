@@ -135,6 +135,11 @@ namespace Meuzz.Linq.Serialization
 
     public class TypeDataJsonConverter : JsonConverter<TypeData>
     {
+        public TypeDataJsonConverter(TypeDataManager typeDataManager)
+        {
+            _typeDataManager = typeDataManager;
+        }
+
         public override bool CanConvert(Type typeToConvert)
         {
             return typeof(TypeData).IsAssignableFrom(typeToConvert);
@@ -198,7 +203,7 @@ namespace Meuzz.Linq.Serialization
                 throw new JsonException();
             }
 
-            return TypeData.FromName(type);
+            return _typeDataManager.FromName(type);
         }
 
         public override void Write(Utf8JsonWriter writer, TypeData value, JsonSerializerOptions options)
@@ -222,6 +227,8 @@ namespace Meuzz.Linq.Serialization
 #endif
             writer.WriteEndObject();
         }
+
+        private TypeDataManager _typeDataManager;
     }
 
     public class MemberInfoDataJsonConverter : JsonConverter<MemberInfoData>
@@ -271,7 +278,7 @@ namespace Meuzz.Linq.Serialization
             return new MemberInfoData()
             {
                 MemberString = name,
-                DeclaringType = TypeData.FromName(declaringType), //  new TypeData() { FullQualifiedTypeString = declaringType },
+                DeclaringType = _typeDataManager.FromName(declaringType), //  new TypeData() { FullQualifiedTypeString = declaringType },
             };
         }
 
@@ -365,7 +372,7 @@ namespace Meuzz.Linq.Serialization
                     throw new JsonException();
                 }
 
-                var t = TypeData.FromName(reader.GetString());
+                var t = _typeDataManager.FromName(reader.GetString());
                 genericParameterTypes.Add(t);
             }
 
@@ -391,7 +398,7 @@ namespace Meuzz.Linq.Serialization
                     throw new JsonException();
                 }
 
-                var t = TypeData.FromName(reader.GetString());
+                var t = _typeDataManager.FromName(reader.GetString());
                 types.Add(t);
             }
 
@@ -403,7 +410,7 @@ namespace Meuzz.Linq.Serialization
             return new MethodInfoData()
             {
                 Name = name,
-                DeclaringType = TypeData.FromName(declaringType),
+                DeclaringType = _typeDataManager.FromName(declaringType),
                 GenericParameterCount = genericParameterCount,
                 GenericParameterTypes = genericParameterTypes.ToArray(),
                 Types = types,

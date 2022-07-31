@@ -21,8 +21,7 @@ namespace Meuzz.Linq.Serialization.Tests
 
             Assert.Equal(expected, ret);
         }
-#endif
-
+]
         private object TrySerialize<T>(Expression<T> f)
         {
             var data = ExpressionData.Pack(f);
@@ -36,6 +35,7 @@ namespace Meuzz.Linq.Serialization.Tests
 
             return (Expression<T>)data2!.Unpack();
         }
+#endif
 
 
         [Fact]

@@ -15,6 +15,11 @@ namespace Meuzz.Linq.Serialization
 {
     public class CustomSerializationBinder : DefaultSerializationBinder
     {
+        public CustomSerializationBinder(TypeDataManager typeDataManager)
+        {
+            _typeDataManager = typeDataManager;
+        }
+
         public override void BindToName(
             Type serializedType, out string? assemblyName, out string? typeName)
         {
@@ -53,7 +58,7 @@ namespace Meuzz.Linq.Serialization
                         return (xs[0], TypeHelper.GetTypeFromFullName(xs[1])!);
                     }).ToArray();
 
-                    var t = TypeData.TypeDataManager.ReconstructType(ts[0].Replace("+", "__"), fs);
+                    var t = _typeDataManager.ReconstructType(ts[0].Replace("+", "__"), fs);
                     if (t == null)
                     {
                         throw new NotImplementedException();
@@ -67,18 +72,21 @@ namespace Meuzz.Linq.Serialization
             }
             return base.BindToType(assemblyName, fullTypeName);
         }
+
+        private TypeDataManager _typeDataManager;
     }
 
     public static class JsonNetSerializer
     {
         public static object Serialize<T>(Expression<T> f)
         {
+            var typeDataManager = new TypeDataManager();
             var data = ExpressionData.Pack(f);
 
             var s = JsonConvert.SerializeObject(data, new JsonSerializerSettings()
             {
                 TypeNameHandling = TypeNameHandling.Objects,
-                SerializationBinder = new CustomSerializationBinder()
+                SerializationBinder = new CustomSerializationBinder(typeDataManager)
             });
 
             return s;
@@ -86,13 +94,14 @@ namespace Meuzz.Linq.Serialization
 
         public static T Deserialize<T>(object o) where T : Delegate
         {
+            var typeDataManager = new TypeDataManager();
             var data2 = JsonConvert.DeserializeObject<ExpressionData>((string)o, new JsonSerializerSettings()
             {
                 TypeNameHandling = TypeNameHandling.Objects,
-                SerializationBinder = new CustomSerializationBinder() 
+                SerializationBinder = new CustomSerializationBinder(typeDataManager) 
             });
 
-            return ((Expression<T>)data2!.Unpack()).Compile();
+            return ((Expression<T>)data2!.Unpack(typeDataManager)).Compile();
         }
     }
 }

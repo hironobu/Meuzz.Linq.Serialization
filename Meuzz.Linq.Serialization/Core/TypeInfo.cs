@@ -171,16 +171,40 @@ namespace Meuzz.Linq.Serialization.Core
         private AssemblyBuilder _assemblyBuilder;
         private ModuleBuilder _moduleBuilder;
 
-        public static void Register(TypeData typeData)
+        public Type Unpack(TypeData typeData)
         {
+            // return ReconstructType(_typeDataManager.GetLongName(FullQualifiedTypeString!));
+            return ReconstructType(typeData.FullQualifiedTypeString!, typeData.FieldSpecifications);
+        }
 
+        public Type UnpackFromName(string name)
+        {
+            var typeData = new TypeData() { FullQualifiedTypeString = name };
+            return Unpack(typeData);
+        }
+
+        public TypeData Build(string name, IEnumerable<(string, Type)> specs)
+        {
+            var data = new TypeData()
+            {
+                FullQualifiedTypeString = name,
+                FieldSpecifications = specs.ToArray()
+            };
+
+            TypeNameTable[name] = data;
+            return data;
+        }
+
+        public TypeData FromName(string name)
+        {
+            return new TypeData() { FullQualifiedTypeString = name };
         }
     }
 
     [Serializable]
     public class TypeData
     {
-        private TypeData() { }
+        public TypeData() { }
 
         public string? FullQualifiedTypeString { get; set; }
 
@@ -202,33 +226,6 @@ namespace Meuzz.Linq.Serialization.Core
 
             return data;
         }
-
-        public Type Unpack()
-        {
-            // return ReconstructType(_typeDataManager.GetLongName(FullQualifiedTypeString!));
-            return _typeDataManager.ReconstructType(FullQualifiedTypeString!, FieldSpecifications);
-        }
-
-        public static TypeDataManager TypeDataManager { get => _typeDataManager; }
-
-        private static TypeDataManager _typeDataManager = new TypeDataManager();
-
-        public static TypeData FromName(string name)
-        {
-            return new TypeData() { FullQualifiedTypeString = name };
-        }
-
-        public static TypeData Build(string name, IEnumerable<(string, Type)> specs)
-        {
-            var data = new TypeData()
-            {
-                FullQualifiedTypeString = name,
-                FieldSpecifications = specs.ToArray()
-            };
-
-            _typeDataManager.TypeNameTable[name] = data;
-            return data;
-        }
     }
 
     [Serializable]
@@ -248,10 +245,10 @@ namespace Meuzz.Linq.Serialization.Core
             return data;
         }
 
-        public ConstructorInfo Unpack()
+        public ConstructorInfo Unpack(TypeDataManager typeDataManager)
         {
-            var t = DeclaringType!.Unpack();
-            return t.GetConstructor(Types != null ? Types.Select(x => x.Unpack()).ToArray() : new Type[] { })!;
+            var t = typeDataManager.Unpack(DeclaringType!);
+            return t.GetConstructor(Types != null ? Types.Select(x => typeDataManager.Unpack(x)).ToArray() : new Type[] { })!;
         }
     }
 
@@ -289,21 +286,21 @@ namespace Meuzz.Linq.Serialization.Core
             return data;
         }
 
-        public MethodInfo Unpack()
+        public MethodInfo Unpack(TypeDataManager typeDataManager)
         {
             if (Name == null)
             {
                 throw new ArgumentNullException("Name is null");
             }
 
-            var t = DeclaringType!.Unpack();
+            var t = typeDataManager.Unpack(DeclaringType!);
             if (GenericParameterCount > 0)
             {
-                var gmethod = t.GetGenericMethod(Name!, Types.Select(x => x.Unpack()).ToArray())!;
-                return gmethod.MakeGenericMethod(GenericParameterTypes!.Select(x => x.Unpack()).ToArray());
+                var gmethod = t.GetGenericMethod(Name!, Types.Select(x => typeDataManager.Unpack(x)).ToArray())!;
+                return gmethod.MakeGenericMethod(GenericParameterTypes!.Select(x => typeDataManager.Unpack(x)).ToArray());
             }
 
-            return t.GetMethod(Name, Types!.Select(x => x.Unpack()!).ToArray())!;
+            return t.GetMethod(Name, Types!.Select(x => typeDataManager.Unpack(x)!).ToArray())!;
         }
     }
 
@@ -324,9 +321,9 @@ namespace Meuzz.Linq.Serialization.Core
             return data;
         }
 
-        public MemberInfo Unpack()
+        public MemberInfo Unpack(TypeDataManager typeDataManager)
         {
-            var t = DeclaringType?.Unpack();
+            var t = DeclaringType != null ? typeDataManager.Unpack(DeclaringType) : null;
             if (t == null)
             {
                 throw new NotImplementedException();

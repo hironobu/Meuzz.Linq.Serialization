@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
-using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 
 namespace Meuzz.Linq.Serialization.Core
@@ -180,13 +177,11 @@ namespace Meuzz.Linq.Serialization.Core
         }
     }
 
-    [DataContract]
     [Serializable]
     public class TypeData
     {
         private TypeData() { }
 
-        [DataMember]
         public string? FullQualifiedTypeString { get; set; }
 
         public (string, Type)[] FieldSpecifications { get; set; } = new (string, Type)[] { };
@@ -236,13 +231,11 @@ namespace Meuzz.Linq.Serialization.Core
         }
     }
 
-    [DataContract]
     [Serializable]
     public class ConstructorInfoData
     {
-        [DataMember]
         public TypeData? DeclaringType { get; set; }
-        [DataMember]
+
         public IEnumerable<TypeData>? Types { get; set; }
 
         public static ConstructorInfoData Pack(ConstructorInfo ci)
@@ -262,25 +255,19 @@ namespace Meuzz.Linq.Serialization.Core
         }
     }
 
-    [DataContract]
     [Serializable]
     public class MethodInfoData
     {
         public MethodInfoData() { }
 
-        [DataMember]
         public string? Name { get; set; }
 
-        [DataMember]
         public TypeData? DeclaringType { get; set; }
 
-        [DataMember]
         public int? GenericParameterCount { get; set; }
 
-        [DataMember]
         public IReadOnlyCollection<TypeData>? GenericParameterTypes { get; set; }
 
-        [DataMember]
         public IReadOnlyCollection<TypeData>? Types { get; set; }
 
         public static MethodInfoData Pack(MethodInfo mi)
@@ -320,14 +307,11 @@ namespace Meuzz.Linq.Serialization.Core
         }
     }
 
-    [DataContract]
     [Serializable]
     public class MemberInfoData
     {
-        [DataMember]
         public string? MemberString { get; set; }
 
-        [DataMember]
         public TypeData? DeclaringType { get; set; }
 
         public static MemberInfoData Pack(MemberInfo mi)

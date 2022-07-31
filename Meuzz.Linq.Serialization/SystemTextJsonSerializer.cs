@@ -18,10 +18,10 @@ namespace Meuzz.Linq.Serialization
             var data = ExpressionData.Pack(f);
 
             var options = new JsonSerializerOptions();
-            options.Converters.Add(new ExpressionDataJsonConverter());
-            options.Converters.Add(new TypeDataJsonConverter());
-            options.Converters.Add(new MemberInfoDataJsonConverter());
-            options.Converters.Add(new MethodInfoDataJsonConverter());
+            var typeDataManager = new TypeDataManager();
+            options.Converters.Add(new ExpressionDataJsonConverter(typeDataManager));
+            options.Converters.Add(new MemberInfoDataJsonConverter(typeDataManager));
+            options.Converters.Add(new MethodInfoDataJsonConverter(typeDataManager));
 
             var s = JsonSerializer.Serialize(data, data.GetType(), options);
             var s2 = JsonSerializer.Serialize(TypeData.TypeDataManager.TypeNameTable, options);
@@ -34,10 +34,10 @@ namespace Meuzz.Linq.Serialization
         public static T Deserialize<T>(object obj) where T : Delegate
         {
             var options = new JsonSerializerOptions();
-            options.Converters.Add(new ExpressionDataJsonConverter());
-            options.Converters.Add(new TypeDataJsonConverter());
-            options.Converters.Add(new MemberInfoDataJsonConverter());
-            options.Converters.Add(new MethodInfoDataJsonConverter());
+            var typeDataManager = new TypeDataManager();
+            options.Converters.Add(new ExpressionDataJsonConverter(typeDataManager));
+            options.Converters.Add(new MemberInfoDataJsonConverter(typeDataManager));
+            options.Converters.Add(new MethodInfoDataJsonConverter(typeDataManager));
 
             var data2 = (ExpressionData)JsonSerializer.Deserialize((string)obj, typeof(ExpressionData), options);
 

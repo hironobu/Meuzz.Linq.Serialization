@@ -11,14 +11,13 @@ namespace Meuzz.Linq.Serialization.Tests
         private void TryTest(Expression<Func<SampleItem, bool>> f, SampleItem obj, bool expected)
         {
 #if true
-            var data = ExpressionSerializer.Serialize(f);
+            var data = SystemTextJsonSerializer.Serialize(f);
 
-            var ff = (Func<SampleItem, bool>)ExpressionSerializer.Deserialize(data);
+            var ff = SystemTextJsonSerializer.Deserialize<Func<SampleItem, bool>>(data);
 #else
             var data = JsonNetSerializer.Serialize(f);
             var ff = JsonNetSerializer.Deserialize<Func<SampleItem, bool>>(data);
 #endif
-
             var ret = ff(obj);
 
             Assert.Equal(expected, ret);

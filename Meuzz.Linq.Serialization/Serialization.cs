@@ -223,8 +223,14 @@ namespace Meuzz.Linq.Serialization
             writer.WriteEndObject();
         }
     }
+
     public class MemberInfoDataJsonConverter : JsonConverter<MemberInfoData>
     {
+        public MemberInfoDataJsonConverter(TypeDataManager typeDataManager)
+        {
+            _typeDataManager = typeDataManager;
+        }
+
         public override bool CanConvert(Type typeToConvert)
         {
             return typeof(MemberInfoData).IsAssignableFrom(typeToConvert);
@@ -276,10 +282,17 @@ namespace Meuzz.Linq.Serialization
             writer.WriteString("DeclaringType", value.DeclaringType?.FullQualifiedTypeString);
             writer.WriteEndObject();
         }
+
+        private TypeDataManager _typeDataManager;
     }
 
     public class MethodInfoDataJsonConverter : JsonConverter<MethodInfoData>
     {
+        public MethodInfoDataJsonConverter(TypeDataManager typeDataManager)
+        {
+            _typeDataManager = typeDataManager;
+        }
+
         public override bool CanConvert(Type typeToConvert)
         {
             return typeof(MethodInfoData).IsAssignableFrom(typeToConvert);
@@ -433,10 +446,16 @@ namespace Meuzz.Linq.Serialization
             writer.WriteEndArray();
             writer.WriteEndObject();
         }
+
+        private TypeDataManager _typeDataManager;
     }
 
     public class ExpressionDataJsonConverter : JsonConverter<ExpressionData>
     {
+        public ExpressionDataJsonConverter(TypeDataManager typeDataManager)
+        {
+            _typeDataManager = typeDataManager;
+        }
 
         public override bool CanConvert(Type typeToConvert)
         {
@@ -945,8 +964,11 @@ namespace Meuzz.Linq.Serialization
 
             writer.WriteEndObject();
         }
+
+        private TypeDataManager _typeDataManager;
     }
 
+#if false
     public class ExpressionSerializer
     {
         public static object Serialize(Expression f)
@@ -956,10 +978,10 @@ namespace Meuzz.Linq.Serialization
             var data = ExpressionData.Pack(f);
 
             var options = new JsonSerializerOptions();
-            options.Converters.Add(new ExpressionDataJsonConverter());
-            options.Converters.Add(new TypeDataJsonConverter());
-            options.Converters.Add(new MemberInfoDataJsonConverter());
-            options.Converters.Add(new MethodInfoDataJsonConverter());
+            var typeDataManager = new TypeDataManager();
+            options.Converters.Add(new ExpressionDataJsonConverter(typeDataManager));
+            options.Converters.Add(new MemberInfoDataJsonConverter(typeDataManager));
+            options.Converters.Add(new MethodInfoDataJsonConverter(typeDataManager));
 
             var s = JsonSerializer.Serialize(data, data.GetType(), options);
             var s2 = JsonSerializer.Serialize(TypeData.TypeDataManager.TypeNameTable, options);
@@ -972,10 +994,11 @@ namespace Meuzz.Linq.Serialization
         public static object Deserialize(object obj)
         {
             var options = new JsonSerializerOptions();
-            options.Converters.Add(new ExpressionDataJsonConverter());
+            var typeDataManager = new TypeDataManager();
+            options.Converters.Add(new ExpressionDataJsonConverter(typeDataManager));
             options.Converters.Add(new TypeDataJsonConverter());
-            options.Converters.Add(new MemberInfoDataJsonConverter());
-            options.Converters.Add(new MethodInfoDataJsonConverter());
+            options.Converters.Add(new MemberInfoDataJsonConverter(typeDataManager));
+            options.Converters.Add(new MethodInfoDataJsonConverter(typeDataManager));
 
             var data2 = (ExpressionData)JsonSerializer.Deserialize((string)obj, typeof(ExpressionData), options);
 
@@ -984,4 +1007,5 @@ namespace Meuzz.Linq.Serialization
             return t2.Compile();
         }
     }
+#endif
 }

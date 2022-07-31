@@ -94,7 +94,7 @@ namespace Meuzz.Linq.Serialization.Expressions
     {
         public bool? CanReduce { get; set; }
         public ExpressionType? NodeType { get; set; }
-        public TypeData? Type { get; set; }
+        public string? Type { get; set; }
         
         public ExpressionData() { }
 
@@ -150,7 +150,7 @@ namespace Meuzz.Linq.Serialization.Expressions
 
             data.CanReduce = le.CanReduce;
             data.NodeType = le.NodeType;
-            data.Type = TypeData.Pack(le.Type);
+            data.Type = le.Type.FullName;
 
             data.Body = ExpressionData.Pack(le.Body);
             data.Name = le.Name;
@@ -180,7 +180,7 @@ namespace Meuzz.Linq.Serialization.Expressions
 
             data.CanReduce = pe.CanReduce;
             data.NodeType = pe.NodeType;
-            data.Type = TypeData.Pack(pe.Type);
+            data.Type = pe.Type.FullName;
 
             data.IsByRef = pe.IsByRef;
             data.Name = pe.Name;
@@ -192,15 +192,15 @@ namespace Meuzz.Linq.Serialization.Expressions
         {
             lock (Instance)
             {
-                var t = Type!.Unpack();
+                var t = TypeData.FromName(Type!).Unpack();
 
-                if (Instance.TryGetValue((t, Name!), out var value))
+                if (Instance.TryGetValue((t, Type!), out var value))
                 {
                     return value;
                 }
 
                 value = Expression.Parameter(t, Name);
-                Instance.Add((t, Name!), value);
+                Instance.Add((t, Type!), value);
                 return value;
             }
         }
@@ -227,7 +227,7 @@ namespace Meuzz.Linq.Serialization.Expressions
 
             data.CanReduce = bine.CanReduce;
             data.NodeType = bine.NodeType;
-            data.Type = TypeData.Pack(bine.Type);
+            data.Type = bine.Type.FullName;
 
             data.Conversion = bine.Conversion != null ? LambdaExpressionData.Pack(bine.Conversion) : null;
             data.IsLifted = bine.IsLifted;
@@ -261,7 +261,7 @@ namespace Meuzz.Linq.Serialization.Expressions
 
             data.CanReduce = membe.CanReduce;
             data.NodeType = membe.NodeType;
-            data.Type = TypeData.Pack(membe.Type);
+            data.Type = membe.Type.FullName;
 
             data.Expression = ExpressionData.Pack(membe.Expression);
             data.Member = MemberInfoData.Pack(membe.Member);
@@ -291,7 +291,7 @@ namespace Meuzz.Linq.Serialization.Expressions
 
             data.CanReduce = ce.CanReduce;
             data.NodeType = ce.NodeType;
-            data.Type = TypeData.Pack(ce.Type);
+            data.Type = ce.Type.FullName;
 
             data.Value = ce.Value;
     
@@ -318,7 +318,7 @@ namespace Meuzz.Linq.Serialization.Expressions
 
             data.CanReduce = mce.CanReduce;
             data.NodeType = mce.NodeType;
-            data.Type = TypeData.Pack(mce.Type);
+            data.Type = mce.Type.FullName;
 
             data.Arguments = mce.Arguments.Select(x => ExpressionData.Pack(x));
             data.Method = MethodInfoData.Pack(mce.Method);
@@ -356,7 +356,7 @@ namespace Meuzz.Linq.Serialization.Expressions
 
             data.CanReduce = ne.CanReduce;
             data.NodeType = ne.NodeType;
-            data.Type = TypeData.Pack(ne.Type);
+            data.Type = ne.Type.FullName;
 
             data.Arguments = ne.Arguments.Select(x => ExpressionData.Pack(x));
             data.ConstructorInfo = ConstructorInfoData.Pack(ne.Constructor);
@@ -384,7 +384,7 @@ namespace Meuzz.Linq.Serialization.Expressions
             data.NodeType = nae.NodeType;
             if (nae.Type.IsArray)
             {
-                data.Type = TypeData.Pack(nae.Type.GetElementType()!);
+                data.Type = nae.Type.GetElementType()!.FullName;
             }
 
             data.Expressions = nae.Expressions.Select(x => ExpressionData.Pack(x)).ToArray();
@@ -394,7 +394,7 @@ namespace Meuzz.Linq.Serialization.Expressions
 
         public override Expression Unpack()
         {
-            var t = Type!.Unpack();
+            var t = TypeData.FromName(Type!).Unpack();
             return Expression.NewArrayInit(t, Expressions.Select(x => x.Unpack()!));
         }
     }

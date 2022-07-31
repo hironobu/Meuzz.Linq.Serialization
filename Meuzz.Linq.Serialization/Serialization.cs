@@ -544,8 +544,7 @@ namespace Meuzz.Linq.Serialization
                         {
                             NodeType = nodeType,
                             CanReduce = canReduce,
-                            // Type = new TypeData() { FullQualifiedTypeString = type },
-                            Type = TypeData.FromName(type),
+                            Type = type,
                             Parameters = parameters,
                             Body = body,
                             Name = name,
@@ -580,7 +579,7 @@ namespace Meuzz.Linq.Serialization
                         {
                             NodeType = nodeType,
                             CanReduce = canReduce,
-                            Type = TypeData.FromName(type),
+                            Type = type,
                             IsByRef = isByRef,
                             Name = name
                         };
@@ -644,7 +643,7 @@ namespace Meuzz.Linq.Serialization
                         {
                             NodeType = nodeType,
                             CanReduce = canReduce,
-                            Type = TypeData.FromName(type),
+                            Type = type,
                             Conversion = conversion!,
                             IsLifted = isLifted,
                             IsLiftedToNull = isLiftedToNull,
@@ -673,7 +672,7 @@ namespace Meuzz.Linq.Serialization
                         {
                             NodeType = nodeType,
                             CanReduce = canReduce,
-                            Type = TypeData.FromName(type),
+                            Type = type,
                             Expression = expression,
                             Member = member
                         };
@@ -717,7 +716,7 @@ namespace Meuzz.Linq.Serialization
                         {
                             NodeType = nodeType,
                             CanReduce = canReduce,
-                            Type = TypeData.FromName(type),
+                            Type = type,
                             Value = value
                         };
                     }
@@ -791,7 +790,7 @@ namespace Meuzz.Linq.Serialization
                         retval = new NewArrayExpressionData()
                         {
                             Expressions = arguments.ToArray(),
-                            Type = TypeData.FromName(type),
+                            Type = type,
                         };
                     }
                     break;
@@ -820,7 +819,7 @@ namespace Meuzz.Linq.Serialization
                 writer.WriteNumber("NodeType", (int)e.NodeType!);
                 writer.WriteBoolean("CanReduce", (bool)e.CanReduce!);
 #if true
-                writer.WriteString("Type", e.Type!.FullQualifiedTypeString);
+                writer.WriteString("Type", e.Type!);
 #else
                 writer.WritePropertyName("Type");
                 JsonSerializer.Serialize(writer, e.Type, options);

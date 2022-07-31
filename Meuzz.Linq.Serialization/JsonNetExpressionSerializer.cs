@@ -50,7 +50,7 @@ namespace Meuzz.Linq.Serialization
                     var fs = ts[1].Split(":").Skip(1).Select(x =>
                     {
                         var xs = x.Split("/");
-                        return (xs[0], GetTypeFromFullName(xs[1])!);
+                        return (xs[0], TypeHelper.GetTypeFromFullName(xs[1])!);
                     }).ToArray();
 
                     var t = TypeData.TypeDataManager.ReconstructType(ts[0].Replace("+", "__"), fs);
@@ -66,19 +66,6 @@ namespace Meuzz.Linq.Serialization
                 }
             }
             return base.BindToType(assemblyName, fullTypeName);
-        }
-
-        private Type? GetTypeFromFullName(string fullTypeName)
-        {
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                var type = assembly.GetType(fullTypeName);
-                if (type != null)
-                {
-                    return type;
-                }
-            }
-            return null;
         }
     }
 

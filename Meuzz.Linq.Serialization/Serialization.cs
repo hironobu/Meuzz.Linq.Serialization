@@ -13,6 +13,22 @@ using Meuzz.Linq.Serialization.Expressions;
 
 namespace Meuzz.Linq.Serialization
 {
+    public static class TypeHelper
+    {
+        public static Type? GetTypeFromFullName(string fullTypeName)
+        {
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                var type = assembly.GetType(fullTypeName);
+                if (type != null)
+                {
+                    return type;
+                }
+            }
+            return null;
+        }
+    }
+
     public class JsonDataJsonConverter : JsonConverter<JsonData>
     {
         public override bool CanConvert(Type typeToConvert)
@@ -131,7 +147,6 @@ namespace Meuzz.Linq.Serialization
                 throw new JsonException();
             }
 
-
             if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "Type")
             {
                 throw new JsonException();
@@ -143,21 +158,68 @@ namespace Meuzz.Linq.Serialization
 
             var type = reader.GetString();
 
+#if false
+            if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "Fields")
+            {
+                throw new JsonException();
+            }
+
+            if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
+            {
+                throw new JsonException();
+            }
+
+            var specs = new List<(string, Type)>();
+            while (true)
+            {
+                if (reader.Read() && reader.TokenType == JsonTokenType.EndObject)
+                {
+                    break;
+                }
+
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                {
+                    throw new JsonException();
+                }
+
+                var key = reader.GetString();
+                if (!reader.Read() || reader.TokenType != JsonTokenType.String)
+                {
+                    throw new JsonException();
+                }
+
+                var value = TypeHelper.GetTypeFromFullName(reader.GetString());
+                specs.Add((key, value!));
+            }
+#endif
+
             if (!reader.Read() || reader.TokenType != JsonTokenType.EndObject)
             {
                 throw new JsonException();
             }
 
-            return new TypeData()
-            {
-                FullQualifiedTypeString = type
-            };
+            return TypeData.FromName(type);
         }
 
         public override void Write(Utf8JsonWriter writer, TypeData value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
             writer.WriteString("Type", value.FullQualifiedTypeString);
+#if false
+            writer.WritePropertyName("Fields");
+            writer.WriteStartObject();
+            foreach (var spec in value.FieldSpecifications)
+            {
+                var type = spec.Item2;
+
+                if (type.GetCustomAttribute<CompilerGeneratedAttribute>() != null)
+                {
+                    // TypeDataManager.Register(type);
+                }
+                writer.WriteString(spec.Item1, type.FullName);
+            }
+            writer.WriteEndObject();
+#endif
             writer.WriteEndObject();
         }
     }
@@ -203,7 +265,7 @@ namespace Meuzz.Linq.Serialization
             return new MemberInfoData()
             {
                 MemberString = name,
-                DeclaringType = new TypeData() { FullQualifiedTypeString = declaringType },
+                DeclaringType = TypeData.FromName(declaringType), //  new TypeData() { FullQualifiedTypeString = declaringType },
             };
         }
 
@@ -290,7 +352,7 @@ namespace Meuzz.Linq.Serialization
                     throw new JsonException();
                 }
 
-                var t = new TypeData() { FullQualifiedTypeString = reader.GetString() };
+                var t = TypeData.FromName(reader.GetString());
                 genericParameterTypes.Add(t);
             }
 
@@ -302,7 +364,7 @@ namespace Meuzz.Linq.Serialization
             return new MethodInfoData()
             {
                 Name = name,
-                DeclaringType = new TypeData() { FullQualifiedTypeString = declaringType },
+                DeclaringType = TypeData.FromName(declaringType),
                 GenericParameterCount = genericParameterCount,
                 GenericParameterTypes = genericParameterTypes.ToArray()
             };
@@ -385,6 +447,7 @@ namespace Meuzz.Linq.Serialization
                 throw new JsonException();
             }
             var type = reader.GetString();
+            // var type = (TypeData)JsonSerializer.Deserialize(ref reader, typeof(TypeData), options);
 
             switch (nodeType)
             {
@@ -444,8 +507,8 @@ namespace Meuzz.Linq.Serialization
                         {
                             NodeType = nodeType,
                             CanReduce = canReduce,
-                            Type = new TypeData() { FullQualifiedTypeString = type },
-
+                            // Type = new TypeData() { FullQualifiedTypeString = type },
+                            Type = TypeData.FromName(type),
                             Parameters = parameters,
                             Body = body,
                             Name = name,
@@ -480,8 +543,7 @@ namespace Meuzz.Linq.Serialization
                         {
                             NodeType = nodeType,
                             CanReduce = canReduce,
-                            Type = new TypeData() { FullQualifiedTypeString = type },
-
+                            Type = TypeData.FromName(type),
                             IsByRef = isByRef,
                             Name = name
                         };
@@ -545,8 +607,7 @@ namespace Meuzz.Linq.Serialization
                         {
                             NodeType = nodeType,
                             CanReduce = canReduce,
-                            Type = new TypeData() { FullQualifiedTypeString = type },
-
+                            Type = TypeData.FromName(type),
                             Conversion = conversion!,
                             IsLifted = isLifted,
                             IsLiftedToNull = isLiftedToNull,
@@ -575,8 +636,7 @@ namespace Meuzz.Linq.Serialization
                         {
                             NodeType = nodeType,
                             CanReduce = canReduce,
-                            Type = new TypeData() { FullQualifiedTypeString = type },
-
+                            Type = TypeData.FromName(type),
                             Expression = expression,
                             Member = member
                         };
@@ -620,8 +680,7 @@ namespace Meuzz.Linq.Serialization
                         {
                             NodeType = nodeType,
                             CanReduce = canReduce,
-                            Type = new TypeData() { FullQualifiedTypeString = type },
-
+                            Type = TypeData.FromName(type),
                             Value = value
                         };
                     }
@@ -693,7 +752,12 @@ namespace Meuzz.Linq.Serialization
             {
                 writer.WriteNumber("NodeType", (int)e.NodeType!);
                 writer.WriteBoolean("CanReduce", (bool)e.CanReduce!);
+#if true
                 writer.WriteString("Type", e.Type!.FullQualifiedTypeString);
+#else
+                writer.WritePropertyName("Type");
+                JsonSerializer.Serialize(writer, e.Type, options);
+#endif
 
                 switch (e)
                 {

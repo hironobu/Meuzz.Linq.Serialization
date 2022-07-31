@@ -17,7 +17,7 @@ namespace Meuzz.Linq.Serialization.Core
             _assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(_assemblyName, AssemblyBuilderAccess.Run);
             _moduleBuilder = _assemblyBuilder.DefineDynamicModule("MyDynamicModule");
         }
-
+        /*
         public string GetShortName(string longName)
         {
             lock (_typeNameTable)
@@ -37,7 +37,7 @@ namespace Meuzz.Linq.Serialization.Core
         public string GetLongName(string shortName)
         {
             return _typeNameTable[shortName];
-        }
+        }*/
 
         public Type? CreateType(string typeName, (string, Type)[] fields, Type? parentType)
         {
@@ -166,19 +166,26 @@ namespace Meuzz.Linq.Serialization.Core
             return type;
         }
 
-        public IDictionary<string, string> TypeNameTable { get => _typeNameTable; }
+        public IDictionary<string, TypeData> TypeNameTable { get => _typeNameTable; }
 
-        private IDictionary<string, string> _typeNameTable = new Dictionary<string, string>();
+        private IDictionary<string, TypeData> _typeNameTable = new Dictionary<string, TypeData>();
 
         private AssemblyName _assemblyName = new AssemblyName("Meuzz.Linq.Serialization.Tests");
         private AssemblyBuilder _assemblyBuilder;
         private ModuleBuilder _moduleBuilder;
+
+        public static void Register(TypeData typeData)
+        {
+
+        }
     }
 
     [DataContract]
     [Serializable]
     public class TypeData
     {
+        private TypeData() { }
+
         [DataMember]
         public string? FullQualifiedTypeString { get; set; }
 
@@ -210,6 +217,23 @@ namespace Meuzz.Linq.Serialization.Core
         public static TypeDataManager TypeDataManager { get => _typeDataManager; }
 
         private static TypeDataManager _typeDataManager = new TypeDataManager();
+
+        public static TypeData FromName(string name)
+        {
+            return new TypeData() { FullQualifiedTypeString = name };
+        }
+
+        public static TypeData Build(string name, IEnumerable<(string, Type)> specs)
+        {
+            var data = new TypeData()
+            {
+                FullQualifiedTypeString = name,
+                FieldSpecifications = specs.ToArray()
+            };
+
+            _typeDataManager.TypeNameTable[name] = data;
+            return data;
+        }
     }
 
     [DataContract]

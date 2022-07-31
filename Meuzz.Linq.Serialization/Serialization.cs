@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -132,14 +133,8 @@ namespace Meuzz.Linq.Serialization
         }
     }
 
-
     public class TypeDataJsonConverter : JsonConverter<TypeData>
     {
-        public TypeDataJsonConverter(TypeDataManager typeDataManager)
-        {
-            _typeDataManager = typeDataManager;
-        }
-
         public override bool CanConvert(Type typeToConvert)
         {
             return typeof(TypeData).IsAssignableFrom(typeToConvert);
@@ -152,6 +147,16 @@ namespace Meuzz.Linq.Serialization
                 throw new JsonException();
             }
 
+            if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "Key")
+            {
+                throw new JsonException();
+            }
+            if (!reader.Read() || reader.TokenType != JsonTokenType.String)
+            {
+                throw new JsonException();
+            }
+            var key = reader.GetString();
+
             if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "Type")
             {
                 throw new JsonException();
@@ -163,7 +168,6 @@ namespace Meuzz.Linq.Serialization
 
             var type = reader.GetString();
 
-#if false
             if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "Fields")
             {
                 throw new JsonException();
@@ -187,48 +191,122 @@ namespace Meuzz.Linq.Serialization
                     throw new JsonException();
                 }
 
-                var key = reader.GetString();
+                var k = reader.GetString();
                 if (!reader.Read() || reader.TokenType != JsonTokenType.String)
                 {
                     throw new JsonException();
                 }
 
-                var value = TypeHelper.GetTypeFromFullName(reader.GetString());
-                specs.Add((key, value!));
+                var fieldType = reader.GetString();
+                var value = TypeHelper.GetTypeFromFullName(fieldType);
+                specs.Add((k, value!));
             }
-#endif
 
             if (!reader.Read() || reader.TokenType != JsonTokenType.EndObject)
             {
                 throw new JsonException();
             }
 
-            return _typeDataManager.FromName(type);
+            return new TypeData()
+            {
+                Key = key,
+                FullQualifiedTypeString = type,
+                FieldSpecifications = specs.ToArray(),
+            };
         }
 
         public override void Write(Utf8JsonWriter writer, TypeData value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
+            writer.WriteString("Key", value.Key);
             writer.WriteString("Type", value.FullQualifiedTypeString);
-#if false
+
             writer.WritePropertyName("Fields");
             writer.WriteStartObject();
             foreach (var spec in value.FieldSpecifications)
             {
                 var type = spec.Item2;
 
-                if (type.GetCustomAttribute<CompilerGeneratedAttribute>() != null)
-                {
-                    // TypeDataManager.Register(type);
-                }
-                writer.WriteString(spec.Item1, type.FullName);
+                writer.WriteString(spec.Item1, type.FullName); // @TODO
             }
             writer.WriteEndObject();
-#endif
+
             writer.WriteEndObject();
         }
+    }
 
-        private TypeDataManager _typeDataManager;
+    public class PacketJsonConverter : JsonConverter<ExpressionPacket>
+    {
+        public override bool CanConvert(Type typeToConvert)
+        {
+            return typeof(ExpressionPacket).IsAssignableFrom(typeToConvert);
+        }
+
+        public override ExpressionPacket Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
+            {
+                throw new JsonException();
+            }
+
+            if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "Type")
+            {
+                throw new JsonException();
+            }
+            if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
+            {
+                throw new JsonException();
+            }
+
+            var typeDatas = new List<TypeData>();
+            while (true)
+            {
+                if (!reader.Read() || reader.TokenType == JsonTokenType.EndArray)
+                {
+                    break;
+                }
+
+                var t = (TypeData)JsonSerializer.Deserialize(ref reader, typeof(TypeData), options);
+                typeDatas.Add(t);
+            }
+
+            if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "Data")
+            {
+                throw new JsonException();
+            }
+            // var data = JsonSerializer.Deserialize(ref reader, typeof(ExpressionData), options);
+            if (!reader.Read() || reader.TokenType != JsonTokenType.String)
+            {
+                throw new JsonException();
+            }
+            var data = reader.GetString();
+
+            if (!reader.Read() || reader.TokenType != JsonTokenType.EndObject)
+            {
+                throw new JsonException();
+            }
+
+            return new ExpressionPacket(data, typeDatas);
+        }
+
+        public override void Write(Utf8JsonWriter writer, ExpressionPacket value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WritePropertyName("Type");
+            writer.WriteStartArray();
+            if (value.Types != null)
+            {
+                foreach (var x in value.Types)
+                {
+                    JsonSerializer.Serialize(writer, x, options);
+                }
+            }
+            writer.WriteEndArray();
+
+            writer.WriteString("Data", value.Data);
+            //JsonSerializer.Serialize(writer, value.Data, options);
+            writer.WriteEndObject();
+        }
     }
 
     public class MemberInfoDataJsonConverter : JsonConverter<MemberInfoData>
@@ -278,7 +356,7 @@ namespace Meuzz.Linq.Serialization
             return new MemberInfoData()
             {
                 MemberString = name,
-                DeclaringType = _typeDataManager.FromName(declaringType), //  new TypeData() { FullQualifiedTypeString = declaringType },
+                DeclaringType = declaringType, //  new TypeData() { FullQualifiedTypeString = declaringType },
             };
         }
 
@@ -286,7 +364,7 @@ namespace Meuzz.Linq.Serialization
         {
             writer.WriteStartObject();
             writer.WriteString("Name", value.MemberString);
-            writer.WriteString("DeclaringType", value.DeclaringType?.FullQualifiedTypeString);
+            writer.WriteString("DeclaringType", value.DeclaringType);
             writer.WriteEndObject();
         }
 
@@ -359,7 +437,7 @@ namespace Meuzz.Linq.Serialization
                 throw new JsonException();
             }
 
-            var genericParameterTypes = new List<TypeData>();
+            var genericParameterTypes = new List<string>();
             while (true)
             {
                 if (!reader.Read() || reader.TokenType == JsonTokenType.EndArray)
@@ -372,7 +450,7 @@ namespace Meuzz.Linq.Serialization
                     throw new JsonException();
                 }
 
-                var t = _typeDataManager.FromName(reader.GetString());
+                var t = reader.GetString();
                 genericParameterTypes.Add(t);
             }
 
@@ -385,7 +463,7 @@ namespace Meuzz.Linq.Serialization
                 throw new JsonException();
             }
 
-            var types = new List<TypeData>();
+            var types = new List<string>();
             while (true)
             {
                 if (!reader.Read() || reader.TokenType == JsonTokenType.EndArray)
@@ -398,7 +476,7 @@ namespace Meuzz.Linq.Serialization
                     throw new JsonException();
                 }
 
-                var t = _typeDataManager.FromName(reader.GetString());
+                var t = reader.GetString();
                 types.Add(t);
             }
 
@@ -410,7 +488,7 @@ namespace Meuzz.Linq.Serialization
             return new MethodInfoData()
             {
                 Name = name,
-                DeclaringType = _typeDataManager.FromName(declaringType),
+                DeclaringType = declaringType,
                 GenericParameterCount = genericParameterCount,
                 GenericParameterTypes = genericParameterTypes.ToArray(),
                 Types = types,
@@ -421,7 +499,7 @@ namespace Meuzz.Linq.Serialization
         {
             writer.WriteStartObject();
             writer.WriteString("Name", value.Name);
-            writer.WriteString("DeclaringType", value.DeclaringType?.FullQualifiedTypeString);
+            writer.WriteString("DeclaringType", value.DeclaringType);
             writer.WritePropertyName("GenericParameterCount");
             if (value.GenericParameterCount != null)
             {
@@ -437,7 +515,7 @@ namespace Meuzz.Linq.Serialization
             {
                 foreach (var x in value.GenericParameterTypes)
                 {
-                    writer.WriteStringValue(x.FullQualifiedTypeString);
+                    writer.WriteStringValue(x);
                 }
             }
             writer.WriteEndArray();
@@ -445,9 +523,9 @@ namespace Meuzz.Linq.Serialization
             writer.WriteStartArray();
             if (value.GenericParameterTypes != null)
             {
-                foreach (var x in value.Types)
+                foreach (var x in value.Types!)
                 {
-                    writer.WriteStringValue(x.FullQualifiedTypeString);
+                    writer.WriteStringValue(x);
                 }
             }
             writer.WriteEndArray();
@@ -734,7 +812,8 @@ namespace Meuzz.Linq.Serialization
                                         throw new NotImplementedException();
                                     }
                                 }*/
-                                value = JsonSerializer.Deserialize<JsonData>(ref reader, options);
+                                var t = _typeDataManager.UnpackFromName(type);
+                                value = JsonSerializer.Deserialize(ref reader, t, options);
                                 break;
                         }
 

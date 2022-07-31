@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace Meuzz.Linq.Serialization.Core
@@ -163,15 +164,11 @@ namespace Meuzz.Linq.Serialization.Core
             return type;
         }
 
-        public IDictionary<string, TypeData> TypeNameTable { get => _typeNameTable; }
-
-        private IDictionary<string, TypeData> _typeNameTable = new Dictionary<string, TypeData>();
-
         private AssemblyName _assemblyName = new AssemblyName("Meuzz.Linq.Serialization.Tests");
         private AssemblyBuilder _assemblyBuilder;
         private ModuleBuilder _moduleBuilder;
 
-        public Type Unpack(TypeData typeData)
+        private Type Unpack(TypeData typeData)
         {
             // return ReconstructType(_typeDataManager.GetLongName(FullQualifiedTypeString!));
             return ReconstructType(typeData.FullQualifiedTypeString!, typeData.FieldSpecifications);
@@ -179,74 +176,93 @@ namespace Meuzz.Linq.Serialization.Core
 
         public Type UnpackFromName(string name)
         {
-            var typeData = new TypeData() { FullQualifiedTypeString = name };
+            //var typeData = new TypeData() { FullQualifiedTypeString = name };
+            var typeData = _typeDataTable[name];
             return Unpack(typeData);
         }
 
-        public TypeData Build(string name, IEnumerable<(string, Type)> specs)
-        {
-            var data = new TypeData()
-            {
-                FullQualifiedTypeString = name,
-                FieldSpecifications = specs.ToArray()
-            };
-
-            TypeNameTable[name] = data;
-            return data;
-        }
-
-        public TypeData FromName(string name)
-        {
-            return new TypeData() { FullQualifiedTypeString = name };
-        }
-    }
-
-    public class TypeData
-    {
-        public TypeData() { }
-
-        public string? FullQualifiedTypeString { get; set; }
-
-        public (string, Type)[] FieldSpecifications { get; set; } = new (string, Type)[] { };
-
-        public static TypeData Pack(Type t)
+        public string Pack(Type t)
         {
             if (t.AssemblyQualifiedName == null || t.FullName == null)
             {
                 throw new InvalidOperationException();
             }
 
-            var data = new TypeData();
+            lock (_typeDataTable)
+            {
+                var fullQualifiedName = t.AssemblyQualifiedName.Replace("+", "__");
 
-            //data.FullQualifiedTypeString = _typeDataManager.GetShortName(t.AssemblyQualifiedName);
-            data.FullQualifiedTypeString = t.AssemblyQualifiedName.Replace("+", "__");
-            //data.FieldSpecifications = new[] { ("s", typeof(string)), ("ss", typeof(string[])), ("d", typeof(Dictionary<string, string>)) };
-            data.FieldSpecifications = t.GetFields().Select(x => (x.Name, x.FieldType)).ToArray();
+                if (_typeKeyReverseTable.TryGetValue(fullQualifiedName, out var k))
+                {
+                    return k;
+                }
 
-            return data;
+                var data = new TypeData();
+
+                //data.FullQualifiedTypeString = _typeDataManager.GetShortName(t.AssemblyQualifiedName);
+                data.FullQualifiedTypeString = fullQualifiedName;
+
+                if (t.GetCustomAttribute<CompilerGeneratedAttribute>() != null)
+                {
+                    //data.FieldSpecifications = new[] { ("s", typeof(string)), ("ss", typeof(string[])), ("d", typeof(Dictionary<string, string>)) };
+                    data.FieldSpecifications = t.GetFields().Select(x => (x.Name, x.FieldType)).ToArray();
+                }
+
+                var random = new Random();
+                while (true)
+                {
+                    var key = random.Next().ToString("X8");
+                    if (!_typeDataTable.TryGetValue(key, out var _))
+                    {
+                        data.Key = key;
+                        _typeDataTable.Add(key, data);
+                        _typeKeyReverseTable.Add(fullQualifiedName, key);
+                        return key;
+                    }
+                }
+            }
         }
+
+        public IEnumerable<TypeData> Types => _typeDataTable.Values;
+        public void LoadTypes(IEnumerable<TypeData> typeDatas)
+        {
+            _typeDataTable = typeDatas.ToDictionary(x => x.Key, x => x);
+        }
+
+        private IDictionary<string, TypeData> _typeDataTable = new Dictionary<string, TypeData>();
+        private IDictionary<string, string> _typeKeyReverseTable = new Dictionary<string, string>();
+    }
+
+    public class TypeData
+    {
+
+        public string Key { get; set; }
+
+        public string? FullQualifiedTypeString { get; set; }
+
+        public (string, Type)[] FieldSpecifications { get; set; } = new (string, Type)[] { };
     }
 
     public class ConstructorInfoData
     {
-        public TypeData? DeclaringType { get; set; }
+        public string? DeclaringType { get; set; }
 
-        public IEnumerable<TypeData>? Types { get; set; }
+        public IEnumerable<string>? Types { get; set; }
 
-        public static ConstructorInfoData Pack(ConstructorInfo ci)
+        public static ConstructorInfoData Pack(ConstructorInfo ci, TypeDataManager typeDataManager)
         {
             var data = new ConstructorInfoData();
 
-            data.DeclaringType = ci.DeclaringType != null ? TypeData.Pack(ci.DeclaringType) : null;
-            data.Types = ci.GetParameters().Select(x => TypeData.Pack(x.ParameterType));
+            data.DeclaringType = ci.DeclaringType != null ? typeDataManager.Pack(ci.DeclaringType) : null;
+            data.Types = ci.GetParameters().Select(x => typeDataManager.Pack(x.ParameterType)).ToArray();
 
             return data;
         }
 
         public ConstructorInfo Unpack(TypeDataManager typeDataManager)
         {
-            var t = typeDataManager.Unpack(DeclaringType!);
-            return t.GetConstructor(Types != null ? Types.Select(x => typeDataManager.Unpack(x)).ToArray() : new Type[] { })!;
+            var t = typeDataManager.UnpackFromName(DeclaringType!);
+            return t.GetConstructor(Types != null ? Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray() : new Type[] { })!;
         }
     }
 
@@ -256,28 +272,28 @@ namespace Meuzz.Linq.Serialization.Core
 
         public string? Name { get; set; }
 
-        public TypeData? DeclaringType { get; set; }
+        public string? DeclaringType { get; set; }
 
         public int? GenericParameterCount { get; set; }
 
-        public IReadOnlyCollection<TypeData>? GenericParameterTypes { get; set; }
+        public IReadOnlyCollection<string>? GenericParameterTypes { get; set; }
 
-        public IReadOnlyCollection<TypeData>? Types { get; set; }
+        public IReadOnlyCollection<string>? Types { get; set; }
 
-        public static MethodInfoData Pack(MethodInfo mi)
+        public static MethodInfoData Pack(MethodInfo mi, TypeDataManager typeDataManager)
         {
             var data = new MethodInfoData();
 
             data.Name = mi.Name;
-            data.DeclaringType = mi.DeclaringType != null ? TypeData.Pack(mi.DeclaringType) : null;
+            data.DeclaringType = mi.DeclaringType != null ? typeDataManager.Pack(mi.DeclaringType) : null;
             var partypes = mi.GetParameters().Select(x => x.ParameterType).ToArray();
-            data.Types = partypes != null ? partypes.Select(x => TypeData.Pack(x)).ToArray() : null;
+            data.Types = partypes != null ? partypes.Select(x => typeDataManager.Pack(x)).ToArray() : null;
 
             if (mi.IsGenericMethod)
             {
                 data.GenericParameterCount = mi.GetGenericArguments().Length;
 
-                data.GenericParameterTypes = mi.GetGenericArguments().Select(x => TypeData.Pack(x)).ToArray();
+                data.GenericParameterTypes = mi.GetGenericArguments().Select(x => typeDataManager.Pack(x)).ToArray();
             }
 
             return data;
@@ -290,14 +306,14 @@ namespace Meuzz.Linq.Serialization.Core
                 throw new ArgumentNullException("Name is null");
             }
 
-            var t = typeDataManager.Unpack(DeclaringType!);
+            var t = typeDataManager.UnpackFromName(DeclaringType!);
             if (GenericParameterCount > 0)
             {
-                var gmethod = t.GetGenericMethod(Name!, Types.Select(x => typeDataManager.Unpack(x)).ToArray())!;
-                return gmethod.MakeGenericMethod(GenericParameterTypes!.Select(x => typeDataManager.Unpack(x)).ToArray());
+                var gmethod = t.GetGenericMethod(Name!, Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray())!;
+                return gmethod.MakeGenericMethod(GenericParameterTypes!.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
             }
 
-            return t.GetMethod(Name, Types!.Select(x => typeDataManager.Unpack(x)!).ToArray())!;
+            return t.GetMethod(Name, Types!.Select(x => typeDataManager.UnpackFromName(x)!).ToArray())!;
         }
     }
 
@@ -305,21 +321,21 @@ namespace Meuzz.Linq.Serialization.Core
     {
         public string? MemberString { get; set; }
 
-        public TypeData? DeclaringType { get; set; }
+        public string? DeclaringType { get; set; }
 
-        public static MemberInfoData Pack(MemberInfo mi)
+        public static MemberInfoData Pack(MemberInfo mi, TypeDataManager typeDataManager)
         {
             var data = new MemberInfoData();
 
             data.MemberString = mi.Name;
-            data.DeclaringType = mi.DeclaringType != null ? TypeData.Pack(mi.DeclaringType) : null;
+            data.DeclaringType = mi.DeclaringType != null ? typeDataManager.Pack(mi.DeclaringType) : null;
 
             return data;
         }
 
         public MemberInfo Unpack(TypeDataManager typeDataManager)
         {
-            var t = DeclaringType != null ? typeDataManager.Unpack(DeclaringType) : null;
+            var t = DeclaringType != null ? typeDataManager.UnpackFromName(DeclaringType) : null;
             if (t == null)
             {
                 throw new NotImplementedException();

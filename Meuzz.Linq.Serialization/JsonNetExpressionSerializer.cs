@@ -81,7 +81,7 @@ namespace Meuzz.Linq.Serialization
         public static object Serialize<T>(Expression<T> f)
         {
             var typeDataManager = new TypeDataManager();
-            var data = ExpressionData.Pack(f);
+            var data = ExpressionData.Pack(f, typeDataManager);
 
             var s = JsonConvert.SerializeObject(data, new JsonSerializerSettings()
             {
@@ -89,19 +89,30 @@ namespace Meuzz.Linq.Serialization
                 SerializationBinder = new CustomSerializationBinder(typeDataManager)
             });
 
-            return s;
+            Debug.WriteLine($"1: {s}");
+            var s2 = JsonConvert.SerializeObject(new ExpressionPacket(s, typeDataManager.Types), new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.Objects });
+
+            Debug.WriteLine($"2: {s2}");
+
+            return s2;
         }
 
         public static T Deserialize<T>(object o) where T : Delegate
         {
             var typeDataManager = new TypeDataManager();
-            var data2 = JsonConvert.DeserializeObject<ExpressionData>((string)o, new JsonSerializerSettings()
+            var packet = JsonConvert.DeserializeObject<ExpressionPacket>((string)o, new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.Objects });
+
+            typeDataManager.LoadTypes(packet.Types);
+
+            var data = JsonConvert.DeserializeObject<ExpressionData>(packet.Data, new JsonSerializerSettings()
             {
                 TypeNameHandling = TypeNameHandling.Objects,
-                SerializationBinder = new CustomSerializationBinder(typeDataManager) 
+                SerializationBinder = new CustomSerializationBinder(typeDataManager)
             });
 
-            return ((Expression<T>)data2!.Unpack(typeDataManager)).Compile();
+            var t2 = (LambdaExpression)data.Unpack(typeDataManager);
+
+            return (T)t2.Compile();
         }
     }
 }

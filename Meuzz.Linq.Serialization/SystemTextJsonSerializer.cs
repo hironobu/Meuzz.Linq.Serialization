@@ -14,34 +14,43 @@ namespace Meuzz.Linq.Serialization
         public static object Serialize<T>(Expression<T> f)
         {
             // using var stream = new MemoryStream();
+            var typeDataManager = new TypeDataManager();
 
-            var data = ExpressionData.Pack(f);
+            var data = ExpressionData.Pack(f, typeDataManager);
 
             var options = new JsonSerializerOptions();
-            var typeDataManager = new TypeDataManager();
             options.Converters.Add(new ExpressionDataJsonConverter(typeDataManager));
             options.Converters.Add(new MemberInfoDataJsonConverter(typeDataManager));
             options.Converters.Add(new MethodInfoDataJsonConverter(typeDataManager));
+            options.Converters.Add(new TypeDataJsonConverter());
+            options.Converters.Add(new PacketJsonConverter());
 
-            var s = JsonSerializer.Serialize(data, data.GetType(), options);
-            var s2 = JsonSerializer.Serialize(typeDataManager.TypeNameTable, options);
-            Debug.WriteLine($"serialized: {s}");
+            var s = JsonSerializer.Serialize(data, typeof(ExpressionData), options);
+            var s2 = JsonSerializer.Serialize(new ExpressionPacket(s, typeDataManager.Types), typeof(ExpressionPacket), options);
+
             Debug.WriteLine($"serialized: {s2}");
 
-            return s;
+            return s2;
         }
 
         public static T Deserialize<T>(object obj) where T : Delegate
         {
-            var options = new JsonSerializerOptions();
             var typeDataManager = new TypeDataManager();
+
+            var options = new JsonSerializerOptions();
             options.Converters.Add(new ExpressionDataJsonConverter(typeDataManager));
             options.Converters.Add(new MemberInfoDataJsonConverter(typeDataManager));
             options.Converters.Add(new MethodInfoDataJsonConverter(typeDataManager));
+            options.Converters.Add(new TypeDataJsonConverter());
+            options.Converters.Add(new PacketJsonConverter());
 
-            var data2 = (ExpressionData)JsonSerializer.Deserialize((string)obj, typeof(ExpressionData), options);
+            var packet = (ExpressionPacket)JsonSerializer.Deserialize((string)obj, typeof(ExpressionPacket), options);
 
-            var t2 = (LambdaExpression)data2.Unpack(typeDataManager);
+            typeDataManager.LoadTypes(packet.Types);
+
+            var data = (ExpressionData)JsonSerializer.Deserialize(packet.Data, typeof(ExpressionData), options);
+
+            var t2 = (LambdaExpression)data.Unpack(typeDataManager);
 
             return (T)t2.Compile();
         }

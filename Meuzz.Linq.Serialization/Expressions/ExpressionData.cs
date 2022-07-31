@@ -90,6 +90,18 @@ namespace Meuzz.Linq.Serialization.Expressions
         }
     }*/
 
+    public class ExpressionPacket
+    {
+        public ExpressionPacket(string data, IEnumerable<TypeData> types)
+        {
+            Data = data;
+            Types = types;
+        }
+
+        public string Data { get; set; }
+        public IEnumerable<TypeData> Types { get; set; }
+    }
+
     public class ExpressionData
     {
         public bool? CanReduce { get; set; }
@@ -98,33 +110,33 @@ namespace Meuzz.Linq.Serialization.Expressions
         
         public ExpressionData() { }
 
-        public static ExpressionData Pack(Expression e)
+        public static ExpressionData Pack(Expression e, TypeDataManager typeDataManager)
         {
             switch (e)
             {
                 case LambdaExpression le:
-                    return LambdaExpressionData.Pack(le);
+                    return LambdaExpressionData.Pack(le, typeDataManager);
 
                 case ParameterExpression pe:
-                    return ParameterExpressionData.Pack(pe);
+                    return ParameterExpressionData.Pack(pe, typeDataManager);
 
                 case BinaryExpression bine:
-                    return BinaryExpressionData.Pack(bine);
+                    return BinaryExpressionData.Pack(bine, typeDataManager);
 
                 case MemberExpression membe:
-                    return MemberExpressionData.Pack(membe);
+                    return MemberExpressionData.Pack(membe, typeDataManager);
 
                 case ConstantExpression ce:
-                    return ConstantExpressionData.Pack(ce);
+                    return ConstantExpressionData.Pack(ce, typeDataManager);
 
                 case MethodCallExpression mce:
-                    return MethodCallExpressionData.Pack(mce);
+                    return MethodCallExpressionData.Pack(mce, typeDataManager);
 
                 case NewExpression ne:
-                    return NewExpressionData.Pack(ne);
+                    return NewExpressionData.Pack(ne, typeDataManager);
 
                 case NewArrayExpression nae:
-                    return NewArrayExpressionData.Pack(nae);
+                    return NewArrayExpressionData.Pack(nae, typeDataManager);
 
                 default:
                     throw new NotImplementedException();
@@ -138,24 +150,24 @@ namespace Meuzz.Linq.Serialization.Expressions
     {
         public ExpressionData? Body { get; set; }
         public string? Name { get; set; }
-        public IEnumerable<ParameterExpressionData>? Parameters { get; set; }
-        public TypeData? ReturnType { get; set; }
+        public IReadOnlyCollection<ParameterExpressionData>? Parameters { get; set; }
+        public string? ReturnType { get; set; }
         public bool? TailCall { get; set; }
 
         public LambdaExpressionData() : base() { }
 
-        public static LambdaExpressionData Pack(LambdaExpression le)
+        public static LambdaExpressionData Pack(LambdaExpression le, TypeDataManager typeDataManager)
         {
             var data = new LambdaExpressionData();
 
             data.CanReduce = le.CanReduce;
             data.NodeType = le.NodeType;
-            data.Type = le.Type.FullName;
+            data.Type = typeDataManager.Pack(le.Type);
 
-            data.Body = ExpressionData.Pack(le.Body);
+            data.Body = ExpressionData.Pack(le.Body, typeDataManager);
             data.Name = le.Name;
-            data.Parameters = le.Parameters.Select(x => ParameterExpressionData.Pack(x)).ToArray();
-            data.ReturnType = TypeData.Pack(le.ReturnType);
+            data.Parameters = le.Parameters.Select(x => ParameterExpressionData.Pack(x, typeDataManager)).ToArray();
+            data.ReturnType = typeDataManager.Pack(le.ReturnType);
             data.TailCall = le.TailCall;
 
             return data;
@@ -174,13 +186,13 @@ namespace Meuzz.Linq.Serialization.Expressions
 
         public ParameterExpressionData() { }
 
-        public static ParameterExpressionData Pack(ParameterExpression pe)
+        public static ParameterExpressionData Pack(ParameterExpression pe, TypeDataManager typeDataManager)
         {
             var data = new ParameterExpressionData();
 
             data.CanReduce = pe.CanReduce;
             data.NodeType = pe.NodeType;
-            data.Type = pe.Type.FullName;
+            data.Type = typeDataManager.Pack(pe.Type);
 
             data.IsByRef = pe.IsByRef;
             data.Name = pe.Name;
@@ -221,20 +233,20 @@ namespace Meuzz.Linq.Serialization.Expressions
 
         public BinaryExpressionData() { }
 
-        public static BinaryExpressionData Pack(BinaryExpression bine)
+        public static BinaryExpressionData Pack(BinaryExpression bine, TypeDataManager typeDataManager)
         {
             var data = new BinaryExpressionData();
 
             data.CanReduce = bine.CanReduce;
             data.NodeType = bine.NodeType;
-            data.Type = bine.Type.FullName;
+            data.Type = typeDataManager.Pack(bine.Type);
 
-            data.Conversion = bine.Conversion != null ? LambdaExpressionData.Pack(bine.Conversion) : null;
+            data.Conversion = bine.Conversion != null ? LambdaExpressionData.Pack(bine.Conversion, typeDataManager) : null;
             data.IsLifted = bine.IsLifted;
             data.IsLiftedToNull = bine.IsLiftedToNull;
-            data.Left = ExpressionData.Pack(bine.Left);
-            data.Method = bine.Method != null ? MethodInfoData.Pack(bine.Method) : null;
-            data.Right = ExpressionData.Pack(bine.Right);
+            data.Left = ExpressionData.Pack(bine.Left, typeDataManager);
+            data.Method = bine.Method != null ? MethodInfoData.Pack(bine.Method, typeDataManager) : null;
+            data.Right = ExpressionData.Pack(bine.Right, typeDataManager);
 
             return data;
         }
@@ -255,16 +267,16 @@ namespace Meuzz.Linq.Serialization.Expressions
         public MemberInfoData? Member { get; set; }
         public MemberExpressionData() { }
 
-        public static MemberExpressionData Pack(MemberExpression membe)
+        public static MemberExpressionData Pack(MemberExpression membe, TypeDataManager typeDataManager)
         {
             var data = new MemberExpressionData();
 
             data.CanReduce = membe.CanReduce;
             data.NodeType = membe.NodeType;
-            data.Type = membe.Type.FullName;
+            data.Type = typeDataManager.Pack(membe.Type);
 
-            data.Expression = ExpressionData.Pack(membe.Expression);
-            data.Member = MemberInfoData.Pack(membe.Member);
+            data.Expression = ExpressionData.Pack(membe.Expression, typeDataManager);
+            data.Member = MemberInfoData.Pack(membe.Member, typeDataManager);
 
             return data;
         }
@@ -285,13 +297,13 @@ namespace Meuzz.Linq.Serialization.Expressions
 
         public ConstantExpressionData() { }
 
-        public static ConstantExpressionData Pack(ConstantExpression ce)
+        public static ConstantExpressionData Pack(ConstantExpression ce, TypeDataManager typeDataManager)
         {
             var data = new ConstantExpressionData();
 
             data.CanReduce = ce.CanReduce;
             data.NodeType = ce.NodeType;
-            data.Type = ce.Type.FullName;
+            data.Type = typeDataManager.Pack(ce.Type);
 
             data.Value = ce.Value;
     
@@ -306,23 +318,23 @@ namespace Meuzz.Linq.Serialization.Expressions
 
     public class MethodCallExpressionData : ExpressionData
     {
-        public IEnumerable<ExpressionData>? Arguments { get; set; }
+        public IReadOnlyCollection<ExpressionData>? Arguments { get; set; }
         public MethodInfoData? Method { get; set; }
         public ExpressionData? Object { get; set; }
 
         public MethodCallExpressionData() { }
 
-        public static MethodCallExpressionData Pack(MethodCallExpression mce)
+        public static MethodCallExpressionData Pack(MethodCallExpression mce, TypeDataManager typeDataManager)
         {
             var data = new MethodCallExpressionData();
 
             data.CanReduce = mce.CanReduce;
             data.NodeType = mce.NodeType;
-            data.Type = mce.Type.FullName;
+            data.Type = typeDataManager.Pack(mce.Type);
 
-            data.Arguments = mce.Arguments.Select(x => ExpressionData.Pack(x));
-            data.Method = MethodInfoData.Pack(mce.Method);
-            data.Object = mce.Object != null ? ExpressionData.Pack(mce.Object) : null;
+            data.Arguments = mce.Arguments.Select(x => ExpressionData.Pack(x, typeDataManager)).ToArray();
+            data.Method = MethodInfoData.Pack(mce.Method, typeDataManager);
+            data.Object = mce.Object != null ? ExpressionData.Pack(mce.Object, typeDataManager) : null;
 
             return data;
         }
@@ -345,21 +357,21 @@ namespace Meuzz.Linq.Serialization.Expressions
 
     public class NewExpressionData : ExpressionData
     {
-        public IEnumerable<ExpressionData>? Arguments { get; set; }
+        public IReadOnlyCollection<ExpressionData>? Arguments { get; set; }
         public ConstructorInfoData? ConstructorInfo { get; set; }
 
         public NewExpressionData() { }
 
-        public static NewExpressionData Pack(NewExpression ne)
+        public static NewExpressionData Pack(NewExpression ne, TypeDataManager typeDataManager)
         {
             var data = new NewExpressionData();
 
             data.CanReduce = ne.CanReduce;
             data.NodeType = ne.NodeType;
-            data.Type = ne.Type.FullName;
+            data.Type = typeDataManager.Pack(ne.Type);
 
-            data.Arguments = ne.Arguments.Select(x => ExpressionData.Pack(x));
-            data.ConstructorInfo = ConstructorInfoData.Pack(ne.Constructor);
+            data.Arguments = ne.Arguments.Select(x => ExpressionData.Pack(x, typeDataManager)).ToArray();
+            data.ConstructorInfo = ConstructorInfoData.Pack(ne.Constructor, typeDataManager);
 
             return data;
         }
@@ -372,11 +384,11 @@ namespace Meuzz.Linq.Serialization.Expressions
 
     public class NewArrayExpressionData : ExpressionData
     {
-        public IEnumerable<ExpressionData>? Expressions { get; set; }
+        public IReadOnlyCollection<ExpressionData>? Expressions { get; set; }
 
         public NewArrayExpressionData() { }
 
-        public static NewArrayExpressionData Pack(NewArrayExpression nae)
+        public static NewArrayExpressionData Pack(NewArrayExpression nae, TypeDataManager typeDataManager)
         {
             var data = new NewArrayExpressionData();
 
@@ -384,10 +396,10 @@ namespace Meuzz.Linq.Serialization.Expressions
             data.NodeType = nae.NodeType;
             if (nae.Type.IsArray)
             {
-                data.Type = nae.Type.GetElementType()!.FullName;
+                data.Type = typeDataManager.Pack(nae.Type.GetElementType()!);
             }
 
-            data.Expressions = nae.Expressions.Select(x => ExpressionData.Pack(x)).ToArray();
+            data.Expressions = nae.Expressions.Select(x => ExpressionData.Pack(x, typeDataManager)).ToArray();
 
             return data;
         }

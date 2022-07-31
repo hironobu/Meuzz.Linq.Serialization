@@ -356,6 +356,32 @@ namespace Meuzz.Linq.Serialization
                 genericParameterTypes.Add(t);
             }
 
+            if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "Type")
+            {
+                throw new JsonException();
+            }
+            if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
+            {
+                throw new JsonException();
+            }
+
+            var types = new List<TypeData>();
+            while (true)
+            {
+                if (!reader.Read() || reader.TokenType == JsonTokenType.EndArray)
+                {
+                    break;
+                }
+
+                if (reader.TokenType != JsonTokenType.String)
+                {
+                    throw new JsonException();
+                }
+
+                var t = TypeData.FromName(reader.GetString());
+                types.Add(t);
+            }
+
             if (!reader.Read() || reader.TokenType != JsonTokenType.EndObject)
             {
                 throw new JsonException();
@@ -366,7 +392,8 @@ namespace Meuzz.Linq.Serialization
                 Name = name,
                 DeclaringType = TypeData.FromName(declaringType),
                 GenericParameterCount = genericParameterCount,
-                GenericParameterTypes = genericParameterTypes.ToArray()
+                GenericParameterTypes = genericParameterTypes.ToArray(),
+                Types = types,
             };
         }
 
@@ -389,6 +416,16 @@ namespace Meuzz.Linq.Serialization
             if (value.GenericParameterTypes != null)
             {
                 foreach (var x in value.GenericParameterTypes)
+                {
+                    writer.WriteStringValue(x.FullQualifiedTypeString);
+                }
+            }
+            writer.WriteEndArray();
+            writer.WritePropertyName("Type");
+            writer.WriteStartArray();
+            if (value.GenericParameterTypes != null)
+            {
+                foreach (var x in value.Types)
                 {
                     writer.WriteStringValue(x.FullQualifiedTypeString);
                 }
@@ -725,6 +762,36 @@ namespace Meuzz.Linq.Serialization
                             Arguments = arguments.ToArray(),
                             Method = method,
                             Object = callerObject,
+                        };
+                    }
+                    break;
+
+                case ExpressionType.NewArrayInit:
+                    {
+                        if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "Expressions")
+                        {
+                            throw new JsonException();
+                        }
+                        if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
+                        {
+                            throw new JsonException();
+                        }
+
+                        var arguments = new List<ExpressionData>();
+                        while (true)
+                        {
+                            if (!reader.Read() || reader.TokenType == JsonTokenType.EndArray)
+                            {
+                                break;
+                            }
+
+                            arguments.Add((ExpressionData)JsonSerializer.Deserialize(ref reader, typeof(ExpressionData), options));
+                        }
+
+                        retval = new NewArrayExpressionData()
+                        {
+                            Expressions = arguments.ToArray(),
+                            Type = TypeData.FromName(type),
                         };
                     }
                     break;

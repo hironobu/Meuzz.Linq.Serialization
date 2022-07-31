@@ -81,6 +81,7 @@ namespace Meuzz.Linq.Serialization
                 SerializationBinder = new CustomSerializationBinder()
             });
 
+            Debug.WriteLine(s);
             return s;
         }
 

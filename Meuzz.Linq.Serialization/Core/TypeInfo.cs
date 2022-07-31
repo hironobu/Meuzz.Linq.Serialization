@@ -266,6 +266,8 @@ namespace Meuzz.Linq.Serialization.Core
     [Serializable]
     public class MethodInfoData
     {
+        public MethodInfoData() { }
+
         [DataMember]
         public string? Name { get; set; }
 

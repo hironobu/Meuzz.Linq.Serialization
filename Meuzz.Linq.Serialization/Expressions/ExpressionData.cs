@@ -237,11 +237,11 @@ namespace Meuzz.Linq.Serialization.Expressions
 
     public class MethodCallExpressionData : ExpressionData
     {
-        public IReadOnlyCollection<ExpressionData>? Arguments { get; set; }
+        public MethodCallExpressionData() { }
+
+        public IReadOnlyCollection<ExpressionData> Arguments { get; set; } = Array.Empty<ExpressionData>();
         public MethodInfoData? Method { get; set; }
         public ExpressionData? Object { get; set; }
-
-        public MethodCallExpressionData() { }
 
         public static MethodCallExpressionData Pack(MethodCallExpression mce, TypeDataManager typeDataManager)
         {
@@ -263,11 +263,11 @@ namespace Meuzz.Linq.Serialization.Expressions
             var o = Object?.Unpack(typeDataManager);
             if (o != null)
             {
-                return Expression.Call(o, Method!.Unpack(typeDataManager), Arguments.Select(x => x.Unpack(typeDataManager)));
+                return Expression.Call(o, Method?.Unpack(typeDataManager), Arguments.Select(x => x.Unpack(typeDataManager)));
             }
             else
             {
-                var method = Method!.Unpack(typeDataManager);
+                var method = Method?.Unpack(typeDataManager);
                 var args = Arguments.Select(x => x.Unpack(typeDataManager));
                 return Expression.Call(method, args);
             }

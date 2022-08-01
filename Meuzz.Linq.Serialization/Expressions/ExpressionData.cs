@@ -276,10 +276,10 @@ namespace Meuzz.Linq.Serialization.Expressions
 
     public class NewExpressionData : ExpressionData
     {
-        public IReadOnlyCollection<ExpressionData>? Arguments { get; set; }
-        public ConstructorInfoData? ConstructorInfo { get; set; }
-
         public NewExpressionData() { }
+
+        public IReadOnlyCollection<ExpressionData> Arguments { get; set; } = Array.Empty<ExpressionData>();
+        public ConstructorInfoData? ConstructorInfo { get; set; }
 
         public static NewExpressionData Pack(NewExpression ne, TypeDataManager typeDataManager)
         {
@@ -290,14 +290,14 @@ namespace Meuzz.Linq.Serialization.Expressions
             data.CanReduce = ne.CanReduce;
 
             data.Arguments = ne.Arguments.Select(x => ExpressionData.Pack(x, typeDataManager)).ToArray();
-            data.ConstructorInfo = ConstructorInfoData.Pack(ne.Constructor, typeDataManager);
+            data.ConstructorInfo = ne.Constructor != null ? ConstructorInfoData.Pack(ne.Constructor, typeDataManager) : null;
 
             return data;
         }
 
         public override Expression Unpack(TypeDataManager typeDataManager)
         {
-            return Expression.New(ConstructorInfo?.Unpack(typeDataManager)!, Arguments?.Select(x => x.Unpack(typeDataManager)));
+           return Expression.New(ConstructorInfo?.Unpack(typeDataManager), Arguments.Select(x => x.Unpack(typeDataManager)));
         }
     }
 

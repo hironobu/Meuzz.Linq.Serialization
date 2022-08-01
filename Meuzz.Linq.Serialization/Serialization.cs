@@ -936,18 +936,15 @@ namespace Meuzz.Linq.Serialization
                     case LambdaExpressionData le:
                         writer.WritePropertyName("Parameters");
                         writer.WriteStartArray();
-                        if (le.Parameters != null)
+                        foreach (var x in le.Parameters)
                         {
-                            foreach (var x in le.Parameters)
-                            {
-                                JsonSerializer.Serialize(writer, x, options);
-                            }
+                            JsonSerializer.Serialize(writer, x, options);
                         }
                         writer.WriteEndArray();
                         writer.WritePropertyName("Body");
                         JsonSerializer.Serialize(writer, le.Body, options);
                         writer.WriteString("Name", le.Name);
-                        writer.WriteBoolean("TailCall", (bool)le.TailCall!);
+                        writer.WriteBoolean("TailCall", le.TailCall);
                         break;
 
                     case ParameterExpressionData pe:

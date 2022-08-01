@@ -64,13 +64,13 @@ namespace Meuzz.Linq.Serialization.Expressions
 
     public class LambdaExpressionData : ExpressionData
     {
-        public ExpressionData? Body { get; set; }
-        public string? Name { get; set; }
-        public IReadOnlyCollection<ParameterExpressionData>? Parameters { get; set; }
-        public string? ReturnType { get; set; }
-        public bool? TailCall { get; set; }
-
         public LambdaExpressionData() : base() { }
+
+        public ExpressionData? Body { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public IReadOnlyCollection<ParameterExpressionData> Parameters { get; set; } = Array.Empty<ParameterExpressionData>();
+        public string ReturnType { get; set; } = string.Empty;
+        public bool TailCall { get; set; }
 
         public static LambdaExpressionData Pack(LambdaExpression le, TypeDataManager typeDataManager)
         {
@@ -91,7 +91,11 @@ namespace Meuzz.Linq.Serialization.Expressions
 
         public override Expression Unpack(TypeDataManager typeDataManager)
         {
-            return Expression.Lambda(Body!.Unpack(typeDataManager), Name, (bool)TailCall!, Parameters.Select(x => (ParameterExpression)x.Unpack(typeDataManager)!));
+            if (Body == null)
+            {
+                throw new NotImplementedException();
+            }
+            return Expression.Lambda(Body.Unpack(typeDataManager), Name, TailCall, Parameters.Select(x => (ParameterExpression)x.Unpack(typeDataManager)!));
         }
     }
 

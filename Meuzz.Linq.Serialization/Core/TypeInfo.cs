@@ -183,7 +183,20 @@ namespace Meuzz.Linq.Serialization.Core
             return Unpack(typeData);
         }
 
-        public string Pack(Type t)
+        public bool IsUsingFieldSpecs(Type t)
+        {
+            if (t.AssemblyQualifiedName == null)
+            {
+                return false;
+            }
+
+            lock (_typeDataTable)
+            {
+                return _typeKeyReverseTable.ContainsKey(t.AssemblyQualifiedName);
+            }
+        }
+
+        public string Pack(Type t, bool usingFieldSpecs = false)
         {
             if (t.AssemblyQualifiedName == null || t.FullName == null)
             {
@@ -203,9 +216,9 @@ namespace Meuzz.Linq.Serialization.Core
 
                 data.FullQualifiedTypeString = fullQualifiedName;
 
-                if (t.GetCustomAttribute<CompilerGeneratedAttribute>() != null)
+                if (usingFieldSpecs)
                 {
-                    data.FieldSpecifications = t.GetFields().Select(x => (x.Name, x.FieldType)).ToArray();
+                    data.FieldSpecifications = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Select(x => (x.Name, x.FieldType)).ToArray();
                 }
 
                 var random = new Random();
@@ -349,7 +362,7 @@ namespace Meuzz.Linq.Serialization.Core
             {
                 throw new NotImplementedException();
             }
-            return t.GetMember(MemberString).First();
+            return t.GetMember(MemberString, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).First();
         }
     }
 

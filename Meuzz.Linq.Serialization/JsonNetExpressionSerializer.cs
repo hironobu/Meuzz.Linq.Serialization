@@ -27,7 +27,7 @@ namespace Meuzz.Linq.Serialization
                 typeName = $"@{(int)serializedType.GetExpressionDataType()}";
                 return;
             }
-            else if (serializedType.GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Any())
+            else if (_typeDataManager.IsUsingFieldSpecs(serializedType))
             {
                 assemblyName = null;
                 typeName = $"#{_typeDataManager.Pack(serializedType)}";

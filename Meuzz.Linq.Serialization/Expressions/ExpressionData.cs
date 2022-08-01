@@ -221,7 +221,7 @@ namespace Meuzz.Linq.Serialization.Expressions
             var data = new ConstantExpressionData();
 
             data.NodeType = ce.NodeType;
-            data.Type = typeDataManager.Pack(ce.Type);
+            data.Type = typeDataManager.Pack(ce.Type, true);
             data.CanReduce = ce.CanReduce;
 
             data.Value = ce.Value;

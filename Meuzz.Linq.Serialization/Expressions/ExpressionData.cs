@@ -303,9 +303,9 @@ namespace Meuzz.Linq.Serialization.Expressions
 
     public class NewArrayExpressionData : ExpressionData
     {
-        public IReadOnlyCollection<ExpressionData>? Expressions { get; set; }
-
         public NewArrayExpressionData() { }
+
+        public IReadOnlyCollection<ExpressionData> Expressions { get; set; } = Array.Empty<ExpressionData>();
 
         public static NewArrayExpressionData Pack(NewArrayExpression nae, TypeDataManager typeDataManager)
         {
@@ -313,15 +313,16 @@ namespace Meuzz.Linq.Serialization.Expressions
 
             data.CanReduce = nae.CanReduce;
             data.NodeType = nae.NodeType;
-            if (nae.Type.IsArray)
+            if (!nae.Type.IsArray)
             {
-                var et = nae.Type.GetElementType();
-                if (et == null)
-                {
-                    throw new InvalidOperationException();
-                }
-                data.Type = typeDataManager.Pack(et);
+                throw new NotImplementedException();
             }
+            var et = nae.Type.GetElementType();
+            if (et == null)
+            {
+                throw new NotImplementedException();
+            }
+            data.Type = typeDataManager.Pack(et);
 
             data.Expressions = nae.Expressions.Select(x => ExpressionData.Pack(x, typeDataManager)).ToArray();
 

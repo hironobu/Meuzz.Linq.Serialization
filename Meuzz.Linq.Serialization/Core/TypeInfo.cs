@@ -247,7 +247,7 @@ namespace Meuzz.Linq.Serialization.Core
     {
         public string? DeclaringType { get; set; }
 
-        public IEnumerable<string>? Types { get; set; }
+        public IReadOnlyCollection<string> Types { get; set; } = Array.Empty<string>();
 
         public static ConstructorInfoData Pack(ConstructorInfo ci, TypeDataManager typeDataManager)
         {
@@ -261,8 +261,8 @@ namespace Meuzz.Linq.Serialization.Core
 
         public ConstructorInfo Unpack(TypeDataManager typeDataManager)
         {
-            var t = typeDataManager.UnpackFromName(DeclaringType!);
-            var ctor = t.GetConstructor(Types != null ? Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray() : new Type[] { });
+            var t = DeclaringType != null ? typeDataManager.UnpackFromName(DeclaringType) : null;
+            var ctor = t?.GetConstructor(Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
             if (ctor == null)
             {
                 throw new NotImplementedException();

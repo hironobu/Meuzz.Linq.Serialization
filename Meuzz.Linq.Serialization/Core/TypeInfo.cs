@@ -164,7 +164,7 @@ namespace Meuzz.Linq.Serialization.Core
             return type;
         }
 
-        private AssemblyName _assemblyName = new AssemblyName("Meuzz.Linq.Serialization.Tests");
+        private AssemblyName _assemblyName = new AssemblyName("MyDynamicAssembly");
         private AssemblyBuilder _assemblyBuilder;
         private ModuleBuilder _moduleBuilder;
 

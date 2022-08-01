@@ -60,6 +60,10 @@ namespace Meuzz.Linq.Serialization.Expressions
         }
 
         public virtual Expression Unpack(TypeDataManager typeDataManager) { throw new NotImplementedException(); }
+
+        public static ExpressionData None => _none;
+
+        private static ExpressionData _none = new ExpressionData();
     }
 
     public class LambdaExpressionData : ExpressionData
@@ -144,14 +148,14 @@ namespace Meuzz.Linq.Serialization.Expressions
 
     public class BinaryExpressionData : ExpressionData
     {
+        public BinaryExpressionData() { }
+
         public LambdaExpressionData? Conversion { get; set; }
         public bool IsLifted { get; set; }
         public bool IsLiftedToNull { get; set; }
-        public ExpressionData? Left { get; set; }
+        public ExpressionData Left { get; set; } = ExpressionData.None;
         public MethodInfoData? Method { get; set; }
-        public ExpressionData? Right { get; set; }
-
-        public BinaryExpressionData() { }
+        public ExpressionData Right { get; set; } = ExpressionData.None;
 
         public static BinaryExpressionData Pack(BinaryExpression bine, TypeDataManager typeDataManager)
         {
@@ -173,11 +177,7 @@ namespace Meuzz.Linq.Serialization.Expressions
 
         public override Expression Unpack(TypeDataManager typeDataManager)
         {
-            if (Conversion != null)
-            {
-                // return Expression.MakeBinary((ExpressionType)(NodeType!), Left!.Unpack(), Right!.Unpack(), IsLiftedToNull, Method.Unpack(), (LambdaExpression)Conversion.Unpack());
-            }
-            return Expression.MakeBinary((ExpressionType)(NodeType!), Left!.Unpack(typeDataManager), Right!.Unpack(typeDataManager)); //, IsLiftedToNull, Method.Unpack());
+            return Expression.MakeBinary(NodeType, Left.Unpack(typeDataManager), Right.Unpack(typeDataManager));
         }
     }
 

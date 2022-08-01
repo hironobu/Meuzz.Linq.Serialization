@@ -190,7 +190,7 @@ namespace Meuzz.Linq.Serialization.Core
 
             lock (_typeDataTable)
             {
-                var fullQualifiedName = t.AssemblyQualifiedName.Replace("+", "__");
+                var fullQualifiedName = t.AssemblyQualifiedName;
 
                 if (_typeKeyReverseTable.TryGetValue(fullQualifiedName, out var k))
                 {

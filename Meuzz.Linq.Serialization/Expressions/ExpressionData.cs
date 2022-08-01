@@ -101,10 +101,10 @@ namespace Meuzz.Linq.Serialization.Expressions
 
     public class ParameterExpressionData : ExpressionData
     {
-        public bool? IsByRef { get; set; }
-        public string? Name { get; set; }
-
         public ParameterExpressionData() { }
+
+        public bool IsByRef { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         public static ParameterExpressionData Pack(ParameterExpression pe, TypeDataManager typeDataManager)
         {

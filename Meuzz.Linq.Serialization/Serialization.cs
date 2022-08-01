@@ -948,7 +948,7 @@ namespace Meuzz.Linq.Serialization
                         break;
 
                     case ParameterExpressionData pe:
-                        writer.WriteBoolean("IsByRef", (bool)pe.IsByRef!);
+                        writer.WriteBoolean("IsByRef", pe.IsByRef);
                         writer.WriteString("Name", pe.Name);
                         break;
 

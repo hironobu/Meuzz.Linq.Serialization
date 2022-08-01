@@ -260,12 +260,12 @@ namespace Meuzz.Linq.Serialization.Expressions
             var o = Object?.Unpack(typeDataManager);
             if (o != null)
             {
-                return Expression.Call(o, Method!.Unpack(typeDataManager), Arguments.Select(x => x.Unpack(typeDataManager)!)!);
+                return Expression.Call(o, Method!.Unpack(typeDataManager), Arguments.Select(x => x.Unpack(typeDataManager)));
             }
             else
             {
                 var method = Method!.Unpack(typeDataManager);
-                var args = Arguments.Select(x => x.Unpack(typeDataManager)!)!;
+                var args = Arguments.Select(x => x.Unpack(typeDataManager));
                 return Expression.Call(method, args);
             }
         }

@@ -262,7 +262,12 @@ namespace Meuzz.Linq.Serialization.Core
         public ConstructorInfo Unpack(TypeDataManager typeDataManager)
         {
             var t = typeDataManager.UnpackFromName(DeclaringType!);
-            return t.GetConstructor(Types != null ? Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray() : new Type[] { })!;
+            var ctor = t.GetConstructor(Types != null ? Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray() : new Type[] { });
+            if (ctor == null)
+            {
+                throw new NotImplementedException();
+            }
+            return ctor;
         }
     }
 
@@ -309,11 +314,20 @@ namespace Meuzz.Linq.Serialization.Core
             var t = typeDataManager.UnpackFromName(DeclaringType!);
             if (GenericParameterCount > 0)
             {
-                var gmethod = t.GetGenericMethod(Name!, Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray())!;
+                var gmethod = t.GetGenericMethod(Name!, Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
+                if (gmethod == null)
+                {
+                    throw new NotImplementedException();
+                }
                 return gmethod.MakeGenericMethod(GenericParameterTypes!.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
             }
 
-            return t.GetMethod(Name, Types!.Select(x => typeDataManager.UnpackFromName(x)!).ToArray())!;
+            var mi = t.GetMethod(Name, Types!.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
+            if (mi == null)
+            {
+                throw new NotImplementedException();
+            }
+            return mi;
         }
     }
 

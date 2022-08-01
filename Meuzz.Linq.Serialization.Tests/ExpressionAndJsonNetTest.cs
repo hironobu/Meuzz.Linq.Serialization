@@ -1,45 +1,12 @@
 ﻿using System;
-using System.Linq.Expressions;
-using Meuzz.Linq.Serialization.Expressions;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace Meuzz.Linq.Serialization.Tests
 {
     public class ExpressionAndJsonNetTest
     {
-#if false
-        private void TryTest(Expression<Func<SampleItem, bool>> f, SampleItem obj, bool expected)
-        {
-            var s = JsonConvert.SerializeObject(f, new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.All });
-
-            var ff = JsonConvert.DeserializeObject<Expression<Func<SampleItem, bool>>>(s, new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.All });
-
-            var compiled = ff.Compile();
-
-            var ret = compiled(obj);
-
-            Assert.Equal(expected, ret);
-        }
-]
-        private object TrySerialize<T>(Expression<T> f)
-        {
-            var data = ExpressionData.Pack(f);
-
-            return JsonConvert.SerializeObject(data, new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.Objects });
-        }
-
-        private Expression<T> TryDeserialize<T>(object o) where T : Delegate
-        {
-            var data2 = JsonConvert.DeserializeObject<ExpressionData>((string)o, new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.Objects });
-
-            return (Expression<T>)data2!.Unpack();
-        }
-#endif
-
-
         [Fact]
-        public void Test01()
+        public void TestSerializeAndDeserializeWithImmediateValues()
         {
             var data = JsonNetSerializer.Serialize<Func<SampleItem, bool>>(x => x.Name == "bbb");
 
@@ -53,7 +20,7 @@ namespace Meuzz.Linq.Serialization.Tests
         }
 
         [Fact]
-        public void Test02()
+        public void TestSerializeAndDeserializeWithVariables()
         {
             var s = "bbb";
             var data = JsonNetSerializer.Serialize<Func<SampleItem, bool>>(x => x.Name == s);

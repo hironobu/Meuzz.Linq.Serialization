@@ -328,7 +328,7 @@ namespace Meuzz.Linq.Serialization.Core
 
     public class MemberInfoData
     {
-        public string? MemberString { get; set; }
+        public string MemberString { get; set; } = string.Empty;
 
         public string? DeclaringType { get; set; }
 
@@ -349,7 +349,7 @@ namespace Meuzz.Linq.Serialization.Core
             {
                 throw new NotImplementedException();
             }
-            return t.GetMember(MemberString!).First();
+            return t.GetMember(MemberString).First();
         }
     }
 

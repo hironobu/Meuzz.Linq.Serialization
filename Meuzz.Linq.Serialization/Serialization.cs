@@ -643,8 +643,8 @@ namespace Meuzz.Linq.Serialization
                         retval = new LambdaExpressionData()
                         {
                             NodeType = nodeType,
-                            CanReduce = canReduce,
                             Type = type,
+                            CanReduce = canReduce,
                             Parameters = parameters,
                             Body = body,
                             Name = name,
@@ -678,8 +678,8 @@ namespace Meuzz.Linq.Serialization
                         retval = new ParameterExpressionData()
                         {
                             NodeType = nodeType,
-                            CanReduce = canReduce,
                             Type = type,
+                            CanReduce = canReduce,
                             IsByRef = isByRef,
                             Name = name
                         };
@@ -742,8 +742,8 @@ namespace Meuzz.Linq.Serialization
                         retval = new BinaryExpressionData()
                         {
                             NodeType = nodeType,
-                            CanReduce = canReduce,
                             Type = type,
+                            CanReduce = canReduce,
                             Conversion = conversion!,
                             IsLifted = isLifted,
                             IsLiftedToNull = isLiftedToNull,
@@ -771,8 +771,8 @@ namespace Meuzz.Linq.Serialization
                         retval = new MemberExpressionData()
                         {
                             NodeType = nodeType,
-                            CanReduce = canReduce,
                             Type = type,
+                            CanReduce = canReduce,
                             Expression = expression,
                             Member = member
                         };
@@ -816,8 +816,8 @@ namespace Meuzz.Linq.Serialization
                         retval = new ConstantExpressionData()
                         {
                             NodeType = nodeType,
-                            CanReduce = canReduce,
                             Type = type,
+                            CanReduce = canReduce,
                             Value = value
                         };
                     }
@@ -859,6 +859,9 @@ namespace Meuzz.Linq.Serialization
 
                         retval = new MethodCallExpressionData()
                         {
+                            NodeType = nodeType,
+                            Type = type,
+                            CanReduce = canReduce,
                             Arguments = arguments.ToArray(),
                             Method = method,
                             Object = callerObject,
@@ -890,8 +893,10 @@ namespace Meuzz.Linq.Serialization
 
                         retval = new NewArrayExpressionData()
                         {
-                            Expressions = arguments.ToArray(),
+                            NodeType = nodeType,
                             Type = type,
+                            CanReduce = canReduce,
+                            Expressions = arguments.ToArray(),
                         };
                     }
                     break;
@@ -917,10 +922,10 @@ namespace Meuzz.Linq.Serialization
 
             if (value is ExpressionData e)
             {
-                writer.WriteNumber("NodeType", (int)e.NodeType!);
-                writer.WriteBoolean("CanReduce", (bool)e.CanReduce!);
+                writer.WriteNumber("NodeType", (int)e.NodeType);
+                writer.WriteBoolean("CanReduce", e.CanReduce);
 #if true
-                writer.WriteString("Type", e.Type!);
+                writer.WriteString("Type", e.Type);
 #else
                 writer.WritePropertyName("Type");
                 JsonSerializer.Serialize(writer, e.Type, options);

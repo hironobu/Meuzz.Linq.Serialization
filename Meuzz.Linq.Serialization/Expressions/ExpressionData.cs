@@ -212,11 +212,9 @@ namespace Meuzz.Linq.Serialization.Expressions
 
     public class ConstantExpressionData : ExpressionData
     {
-        public object? Value { get; set; }
-        public string? CustomTypeString { get; set; }
-        public IDictionary<string, object>? CustomTypeValue { get; set; }
-
         public ConstantExpressionData() { }
+
+        public object? Value { get; set; }
 
         public static ConstantExpressionData Pack(ConstantExpression ce, TypeDataManager typeDataManager)
         {

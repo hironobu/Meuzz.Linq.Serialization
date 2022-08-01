@@ -1,9 +1,5 @@
-﻿#nullable enable
-
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -1053,45 +1049,4 @@ namespace Meuzz.Linq.Serialization
 
         private TypeDataManager _typeDataManager;
     }
-
-#if false
-    public class ExpressionSerializer
-    {
-        public static object Serialize(Expression f)
-        {
-            // using var stream = new MemoryStream();
-
-            var data = ExpressionData.Pack(f);
-
-            var options = new JsonSerializerOptions();
-            var typeDataManager = new TypeDataManager();
-            options.Converters.Add(new ExpressionDataJsonConverter(typeDataManager));
-            options.Converters.Add(new MemberInfoDataJsonConverter(typeDataManager));
-            options.Converters.Add(new MethodInfoDataJsonConverter(typeDataManager));
-
-            var s = JsonSerializer.Serialize(data, data.GetType(), options);
-            var s2 = JsonSerializer.Serialize(TypeData.TypeDataManager.TypeNameTable, options);
-            Debug.WriteLine($"serialized: {s}");
-            Debug.WriteLine($"serialized: {s2}");
-
-            return s;
-        }
-
-        public static object Deserialize(object obj)
-        {
-            var options = new JsonSerializerOptions();
-            var typeDataManager = new TypeDataManager();
-            options.Converters.Add(new ExpressionDataJsonConverter(typeDataManager));
-            options.Converters.Add(new TypeDataJsonConverter());
-            options.Converters.Add(new MemberInfoDataJsonConverter(typeDataManager));
-            options.Converters.Add(new MethodInfoDataJsonConverter(typeDataManager));
-
-            var data2 = (ExpressionData)JsonSerializer.Deserialize((string)obj, typeof(ExpressionData), options);
-
-            var t2 = (LambdaExpression)data2.Unpack();
-
-            return t2.Compile();
-        }
-    }
-#endif
 }

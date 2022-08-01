@@ -136,6 +136,10 @@ namespace Meuzz.Linq.Serialization
         {
             var typeDataManager = new TypeDataManager();
             var packet = JsonConvert.DeserializeObject<ExpressionPacket>((string)o, new JsonSerializerSettings());
+            if (packet == null)
+            {
+                throw new NotImplementedException();
+            }
 
             typeDataManager.LoadTypes(packet.Types);
 
@@ -144,6 +148,11 @@ namespace Meuzz.Linq.Serialization
                 TypeNameHandling = TypeNameHandling.Objects,
                 SerializationBinder = new CustomSerializationBinder(typeDataManager)
             });
+
+            if (data == null)
+            {
+                throw new NotImplementedException();
+            }
 
             var t2 = (LambdaExpression)data.Unpack(typeDataManager);
 

@@ -159,6 +159,10 @@ namespace Meuzz.Linq.Serialization.Core
             {
                 var fullNameWithoutAssemblyName = assemblyQualifiedName.Split(",").First();
                 type = CreateType(fullNameWithoutAssemblyName, fieldSpecs, null);
+                if (type == null)
+                {
+                    throw new NotImplementedException();
+                }
             }
 
             return type;
@@ -170,13 +174,11 @@ namespace Meuzz.Linq.Serialization.Core
 
         private Type Unpack(TypeData typeData)
         {
-            // return ReconstructType(_typeDataManager.GetLongName(FullQualifiedTypeString!));
-            return ReconstructType(typeData.FullQualifiedTypeString!, typeData.FieldSpecifications);
+            return ReconstructType(typeData.FullQualifiedTypeString, typeData.FieldSpecifications);
         }
 
         public Type UnpackFromName(string name)
         {
-            //var typeData = new TypeData() { FullQualifiedTypeString = name };
             var typeData = _typeDataTable[name];
             return Unpack(typeData);
         }
@@ -199,12 +201,10 @@ namespace Meuzz.Linq.Serialization.Core
 
                 var data = new TypeData();
 
-                //data.FullQualifiedTypeString = _typeDataManager.GetShortName(t.AssemblyQualifiedName);
                 data.FullQualifiedTypeString = fullQualifiedName;
 
                 if (t.GetCustomAttribute<CompilerGeneratedAttribute>() != null)
                 {
-                    //data.FieldSpecifications = new[] { ("s", typeof(string)), ("ss", typeof(string[])), ("d", typeof(Dictionary<string, string>)) };
                     data.FieldSpecifications = t.GetFields().Select(x => (x.Name, x.FieldType)).ToArray();
                 }
 
@@ -236,9 +236,9 @@ namespace Meuzz.Linq.Serialization.Core
     public class TypeData
     {
 
-        public string Key { get; set; }
+        public string Key { get; set; } = string.Empty;
 
-        public string? FullQualifiedTypeString { get; set; }
+        public string FullQualifiedTypeString { get; set; } = string.Empty;
 
         public (string, Type)[] FieldSpecifications { get; set; } = new (string, Type)[] { };
     }

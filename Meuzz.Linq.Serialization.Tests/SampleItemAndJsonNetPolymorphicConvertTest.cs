@@ -19,7 +19,7 @@ namespace Meuzz.Linq.Serialization.Tests
 
             Assert.Equal(obj.Id, obj2?.Id);
             Assert.Equal(obj.Name, obj2?.Name);
-            Assert.Null(obj2.Parent);
+            Assert.Null(obj2?.Parent);
         }
 
         [Fact]
@@ -30,12 +30,13 @@ namespace Meuzz.Linq.Serialization.Tests
             var s = JsonConvert.SerializeObject(obj, new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.All });
 
             var obj2 = JsonConvert.DeserializeObject<SampleItem>(s, new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.All });
+            Assert.NotNull(obj2);
 
             Assert.Equal(obj.Id, obj2?.Id);
             Assert.Equal(obj.Name, obj2?.Name);
             Assert.NotNull(obj2?.Parent);
-            Assert.IsType<ExtendedSampleItem>(obj2.Parent);
-            Assert.Equal("bbbb", ((ExtendedSampleItem)obj2.Parent!).Description);
+            Assert.IsType<ExtendedSampleItem>(obj2?.Parent);
+            Assert.Equal("bbbb", ((ExtendedSampleItem)obj2!.Parent!).Description);
         }
     }
 }

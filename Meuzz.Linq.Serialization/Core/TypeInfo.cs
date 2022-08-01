@@ -201,7 +201,6 @@ namespace Meuzz.Linq.Serialization.Core
         }
     }
 
-    [Serializable]
     public class TypeData
     {
         public TypeData() { }
@@ -228,7 +227,6 @@ namespace Meuzz.Linq.Serialization.Core
         }
     }
 
-    [Serializable]
     public class ConstructorInfoData
     {
         public TypeData? DeclaringType { get; set; }
@@ -252,7 +250,6 @@ namespace Meuzz.Linq.Serialization.Core
         }
     }
 
-    [Serializable]
     public class MethodInfoData
     {
         public MethodInfoData() { }
@@ -304,7 +301,6 @@ namespace Meuzz.Linq.Serialization.Core
         }
     }
 
-    [Serializable]
     public class MemberInfoData
     {
         public string? MemberString { get; set; }

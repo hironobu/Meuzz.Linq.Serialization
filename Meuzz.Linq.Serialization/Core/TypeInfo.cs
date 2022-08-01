@@ -317,7 +317,7 @@ namespace Meuzz.Linq.Serialization.Core
                 return gmethod.MakeGenericMethod(GenericParameterTypes.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
             }
 
-            var mi = t.GetMethod(Name, Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
+            var mi = t?.GetMethod(Name, Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
             if (mi == null)
             {
                 throw new NotImplementedException();

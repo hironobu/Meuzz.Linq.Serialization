@@ -616,7 +616,7 @@ namespace Meuzz.Linq.Serialization
                         }
                         var body = (ExpressionData)JsonSerializer.Deserialize(ref reader, typeof(ExpressionData), options);
 
-                        string? name = null;
+                        var name = string.Empty;
                         if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "Name")
                         {
                             throw new JsonException();

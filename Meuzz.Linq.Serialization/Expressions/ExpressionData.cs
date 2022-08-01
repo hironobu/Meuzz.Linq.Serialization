@@ -183,9 +183,10 @@ namespace Meuzz.Linq.Serialization.Expressions
 
     public class MemberExpressionData : ExpressionData
     {
-        public ExpressionData? Expression { get; set; }
-        public MemberInfoData? Member { get; set; }
         public MemberExpressionData() { }
+
+        public ExpressionData Expression { get; set; } = ExpressionData.None;
+        public MemberInfoData? Member { get; set; }
 
         public static MemberExpressionData Pack(MemberExpression membe, TypeDataManager typeDataManager)
         {
@@ -196,15 +197,15 @@ namespace Meuzz.Linq.Serialization.Expressions
             data.CanReduce = membe.CanReduce;
 
             data.Expression = ExpressionData.Pack(membe.Expression, typeDataManager);
-            data.Member = MemberInfoData.Pack(membe.Member, typeDataManager);
+            data.Member = membe.Member != null ? MemberInfoData.Pack(membe.Member, typeDataManager) : null;
 
             return data;
         }
 
         public override Expression Unpack(TypeDataManager typeDataManager)
         {
-            var e = Expression!.Unpack(typeDataManager);
-            var memberInfo = Member!.Unpack(typeDataManager);
+            var e = Expression.Unpack(typeDataManager);
+            var memberInfo = Member?.Unpack(typeDataManager);
             return System.Linq.Expressions.Expression.MakeMemberAccess(e, memberInfo);
         }
     }

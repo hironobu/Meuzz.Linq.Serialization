@@ -275,7 +275,7 @@ namespace Meuzz.Linq.Serialization.Core
     {
         public MethodInfoData() { }
 
-        public string? Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         public string? DeclaringType { get; set; }
 
@@ -283,7 +283,7 @@ namespace Meuzz.Linq.Serialization.Core
 
         public IReadOnlyCollection<string>? GenericParameterTypes { get; set; }
 
-        public IReadOnlyCollection<string>? Types { get; set; }
+        public IReadOnlyCollection<string> Types { get; set; } = Array.Empty<string>();
 
         public static MethodInfoData Pack(MethodInfo mi, TypeDataManager typeDataManager)
         {
@@ -292,7 +292,7 @@ namespace Meuzz.Linq.Serialization.Core
             data.Name = mi.Name;
             data.DeclaringType = mi.DeclaringType != null ? typeDataManager.Pack(mi.DeclaringType) : null;
             var partypes = mi.GetParameters().Select(x => x.ParameterType).ToArray();
-            data.Types = partypes != null ? partypes.Select(x => typeDataManager.Pack(x)).ToArray() : null;
+            data.Types = partypes.Select(x => typeDataManager.Pack(x)).ToArray();
 
             if (mi.IsGenericMethod)
             {
@@ -306,23 +306,18 @@ namespace Meuzz.Linq.Serialization.Core
 
         public MethodInfo Unpack(TypeDataManager typeDataManager)
         {
-            if (Name == null)
-            {
-                throw new ArgumentNullException("Name is null");
-            }
-
-            var t = typeDataManager.UnpackFromName(DeclaringType!);
+            var t = DeclaringType != null ? typeDataManager.UnpackFromName(DeclaringType) : null;
             if (GenericParameterCount > 0)
             {
-                var gmethod = t.GetGenericMethod(Name!, Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
+                var gmethod = t?.GetGenericMethod(Name, Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
                 if (gmethod == null)
                 {
                     throw new NotImplementedException();
                 }
-                return gmethod.MakeGenericMethod(GenericParameterTypes!.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
+                return gmethod.MakeGenericMethod(GenericParameterTypes.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
             }
 
-            var mi = t.GetMethod(Name, Types!.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
+            var mi = t.GetMethod(Name, Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
             if (mi == null)
             {
                 throw new NotImplementedException();

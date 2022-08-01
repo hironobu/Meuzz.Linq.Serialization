@@ -88,6 +88,13 @@ namespace Meuzz.Linq.Serialization.Tests
             TestSerializeAndDeserialize(x => x.Name != ss.Last(), new SampleItem(1, "bbb"), false);
         }
 
+        [Fact]
+        public void TestWithFieldOfOuterInstance3()
+        {
+            var obj = new SampleItem(2, "xxx");
+            TestSerializeAndDeserialize(x => x.Name != obj.Name, new SampleItem(1, "bbb"), true);
+        }
+
         private string[] _testValues = new[] { "aaa", "bbb" };
         // private SampleItem _sampleItem = new SampleItem(1, "bbb");
     }

@@ -195,7 +195,11 @@ namespace Meuzz.Linq.Serialization
 
                 var fieldType = reader.GetString();
                 var value = TypeHelper.GetTypeFromFullName(fieldType);
-                specs.Add((k, value!));
+                if (value == null)
+                {
+                    throw new NotImplementedException();
+                }
+                specs.Add((k, value));
             }
 
             if (!reader.Read() || reader.TokenType != JsonTokenType.EndObject)
@@ -519,7 +523,7 @@ namespace Meuzz.Linq.Serialization
             writer.WriteStartArray();
             if (value.GenericParameterTypes != null)
             {
-                foreach (var x in value.Types!)
+                foreach (var x in value.Types)
                 {
                     writer.WriteStringValue(x);
                 }

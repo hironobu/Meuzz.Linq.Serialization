@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using Newtonsoft.Json;
 using Xunit;
@@ -31,12 +32,14 @@ namespace Meuzz.Linq.Serialization.Tests
 
             var obj2 = JsonConvert.DeserializeObject<SampleItem>(s, new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.All });
             Assert.NotNull(obj2);
+            Debug.Assert(obj2 != null);
 
-            Assert.Equal(obj.Id, obj2?.Id);
-            Assert.Equal(obj.Name, obj2?.Name);
-            Assert.NotNull(obj2?.Parent);
-            Assert.IsType<ExtendedSampleItem>(obj2?.Parent);
-            Assert.Equal("bbbb", ((ExtendedSampleItem)obj2!.Parent!).Description);
+            Assert.Equal(obj.Id, obj2.Id);
+            Assert.Equal(obj.Name, obj2.Name);
+            Assert.NotNull(obj2.Parent);
+            Assert.IsType<ExtendedSampleItem>(obj2.Parent);
+            Debug.Assert(obj2.Parent != null);
+            Assert.Equal("bbbb", ((ExtendedSampleItem)obj2.Parent).Description);
         }
     }
 }

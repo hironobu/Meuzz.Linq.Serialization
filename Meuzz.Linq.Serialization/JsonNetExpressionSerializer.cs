@@ -45,7 +45,7 @@ namespace Meuzz.Linq.Serialization
                 switch (fullTypeName[0])
                 {
                     case '@':
-                        return ((TypeSerialization)int.Parse(fullTypeName.Substring(1)!)).GetTypeFromExpressionDataType();
+                        return ((TypeSerialization)int.Parse(fullTypeName.Substring(1))).GetTypeFromExpressionDataType();
 
                     case '#':
                         return _typeDataManager.UnpackFromName(fullTypeName.Substring(1));

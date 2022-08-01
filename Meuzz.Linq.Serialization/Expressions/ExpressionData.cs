@@ -99,7 +99,7 @@ namespace Meuzz.Linq.Serialization.Expressions
             {
                 throw new NotImplementedException();
             }
-            return Expression.Lambda(Body.Unpack(typeDataManager), Name, TailCall, Parameters.Select(x => (ParameterExpression)x.Unpack(typeDataManager)!));
+            return Expression.Lambda(Body.Unpack(typeDataManager), Name, TailCall, Parameters.Select(x => (ParameterExpression)x.Unpack(typeDataManager)));
         }
     }
 

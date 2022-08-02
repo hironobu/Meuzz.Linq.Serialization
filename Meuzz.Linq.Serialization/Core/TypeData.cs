@@ -34,7 +34,7 @@ namespace Meuzz.Linq.Serialization.Core
         public Type UnpackFromName(string name)
         {
             var typeData = _typeDataTable[name];
-            return ReconstructType(typeData.FullQualifiedTypeString, typeData.FieldSpecifications);
+            return ReconstructType(typeData.FullName, typeData.Fields);
         }
 
         /// <summary>
@@ -78,9 +78,9 @@ namespace Meuzz.Linq.Serialization.Core
                 {
                     var d = _typeDataTable[k];
 
-                    if (usingFieldSpecs && !d.FieldSpecifications.Any())
+                    if (usingFieldSpecs && !d.Fields.Any())
                     {
-                        d.FieldSpecifications = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Select(x => (x.Name, Pack(x.FieldType))).ToArray();
+                        d.Fields = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Select(x => new FieldData() { Name = x.Name, TypeKey = Pack(x.FieldType) }).ToArray();
                     }
                     return k;
                 }
@@ -89,7 +89,8 @@ namespace Meuzz.Linq.Serialization.Core
 
                 if (usingFieldSpecs)
                 {
-                    data.FieldSpecifications = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Select(x => (x.Name, Pack(x.FieldType))).ToArray();
+                    data.Fields = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Select(x => new FieldData() { Name = x.Name, TypeKey = Pack(x.FieldType) }).ToArray();
+
                 }
 
                 var random = new Random();
@@ -99,7 +100,7 @@ namespace Meuzz.Linq.Serialization.Core
                     if (!_typeDataTable.TryGetValue(key, out var _))
                     {
                         data.Key = key;
-                        data.FullQualifiedTypeString = usingFieldSpecs ? fullName + "@" + key : assemblyQualifiedName;
+                        data.FullName = usingFieldSpecs ? fullName + "@" + key : assemblyQualifiedName;
                         _typeDataTable.Add(key, data);
                         _typeKeyReverseTable.Add(fullName, key);
                         return key;
@@ -124,15 +125,15 @@ namespace Meuzz.Linq.Serialization.Core
         /// <param name="fields"></param>
         /// <param name="parentType"></param>
         /// <returns></returns>
-        private Type? CreateType(string typeName, (string, string)[] fields, Type? parentType)
+        private Type? CreateType(string typeName, FieldData[] fields, Type? parentType)
         {
             TypeBuilder typeBuilder = _moduleBuilder.DefineType(typeName,
                 TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.AutoLayout | (parentType == null ? TypeAttributes.Public : TypeAttributes.Sealed), // | TypeAttributes.ExplicitLayout,
                 parentType);
 
-            foreach (var (k, v) in fields)
+            foreach (var f in fields)
             {
-                typeBuilder.DefineField(k, UnpackFromName(v), FieldAttributes.Public);
+                typeBuilder.DefineField(f.Name, UnpackFromName(f.TypeKey), FieldAttributes.Public);
             }
 
             return typeBuilder.CreateType();
@@ -145,7 +146,7 @@ namespace Meuzz.Linq.Serialization.Core
         /// <param name="fieldSpecs">生成する型のフィールド情報。</param>
         /// <returns>生成された型情報。</returns>
         /// <exception cref="ArgumentException"></exception>
-        private Type? ConstructGenericType(string assemblyQualifiedName, (string, string)[] fieldSpecs)
+        private Type? ConstructGenericType(string assemblyQualifiedName, FieldData[] fieldSpecs)
         {
             var regex = new Regex(@"^(?<name>\w+(\.\w+)*)`(?<count>\d)\[(?<subtypes>\[.*\])\](, (?<assembly>\w+(\.\w+)*)[\w\s,=\.]+)$?", RegexOptions.Singleline | RegexOptions.ExplicitCapture);
             var match = regex.Match(assemblyQualifiedName);
@@ -226,7 +227,7 @@ namespace Meuzz.Linq.Serialization.Core
         /// <param name="fieldSpecs">フィールド定義情報。</param>
         /// <returns>生成された型情報。</returns>
         /// <exception cref="NotImplementedException"></exception>
-        private Type ReconstructType(string assemblyQualifiedName, (string, string)[] fieldSpecs)
+        private Type ReconstructType(string assemblyQualifiedName, FieldData[] fieldSpecs)
         {
             Type? type = null;
 
@@ -274,17 +275,26 @@ namespace Meuzz.Linq.Serialization.Core
         private IDictionary<string, string> _typeKeyReverseTable = new Dictionary<string, string>();
     }
 
+    /// <summary>
+    ///   シリアライズ可能な型データ。
+    /// </summary>
     public class TypeData
     {
-
         public string Key { get; set; } = string.Empty;
 
-        public string FullQualifiedTypeString { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
 
-        public (string, string)[] FieldSpecifications { get; set; } = new (string, string)[] { };
+        public FieldData[] Fields { get; set; } = new FieldData[] { };
     }
 
-    public static class TypeExtensions
+    public class FieldData
+    {
+        public string Name { get; set; } = string.Empty;
+
+        public string TypeKey { get; set; } = string.Empty;
+    }
+
+    public static class TypeGenericExtensions
     {
         private class SimpleTypeComparer : IEqualityComparer<Type>
         {
@@ -300,12 +310,16 @@ namespace Meuzz.Linq.Serialization.Core
                     x?.Name == y?.Name;
             }
 
-            public int GetHashCode(Type obj)
-            {
-                throw new NotImplementedException();
-            }
+            public int GetHashCode(Type obj) => throw new NotImplementedException();
         }
 
+        /// <summary>
+        ///   型パラメーターを持つジェネリックメソッドを取得する。
+        /// </summary>
+        /// <param name="type">メソッドが定義されているクラス。</param>
+        /// <param name="name">メソッド名。</param>
+        /// <param name="parameterTypes">型パラメーター。</param>
+        /// <returns>取得されたメソッド情報(<see cref="MethodInfo"/>)。存在しなければ<c>null</c>。</returns>
         public static MethodInfo? GetGenericMethod(this Type type, string name, Type[] parameterTypes)
         {
             var methods = type.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public).Where(m => m.Name == name);

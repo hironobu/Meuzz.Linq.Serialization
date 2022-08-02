@@ -174,7 +174,7 @@ namespace Meuzz.Linq.Serialization
                 throw new JsonException();
             }
 
-            var specs = new List<(string, string)>();
+            var specs = new List<FieldData>();
             while (true)
             {
                 if (reader.Read() && reader.TokenType == JsonTokenType.EndObject)
@@ -199,7 +199,7 @@ namespace Meuzz.Linq.Serialization
                 {
                     throw new NotImplementedException();
                 }
-                specs.Add((k, value));
+                specs.Add(new FieldData() { Name = k, TypeKey = value });
             }
 
             if (!reader.Read() || reader.TokenType != JsonTokenType.EndObject)
@@ -210,8 +210,8 @@ namespace Meuzz.Linq.Serialization
             return new TypeData()
             {
                 Key = key,
-                FullQualifiedTypeString = type,
-                FieldSpecifications = specs.ToArray(),
+                FullName = type,
+                Fields = specs.ToArray(),
             };
         }
 
@@ -219,15 +219,15 @@ namespace Meuzz.Linq.Serialization
         {
             writer.WriteStartObject();
             writer.WriteString("Key", value.Key);
-            writer.WriteString("Type", value.FullQualifiedTypeString);
+            writer.WriteString("Type", value.FullName);
 
             writer.WritePropertyName("Fields");
             writer.WriteStartObject();
-            foreach (var spec in value.FieldSpecifications)
+            foreach (var spec in value.Fields)
             {
-                var type = spec.Item2;
+                var type = spec.TypeKey;
 
-                writer.WriteString(spec.Item1, type);
+                writer.WriteString(spec.Name, type);
             }
             writer.WriteEndObject();
 

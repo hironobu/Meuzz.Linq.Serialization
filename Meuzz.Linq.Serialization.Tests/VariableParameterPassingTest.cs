@@ -48,18 +48,6 @@ namespace Meuzz.Linq.Serialization.Tests
         [Fact]
         public void TestWithDictionary()
         {
-            /*var dict = new Dictionary<ParameterExpression, string>();
-
-            var pe0 = Expression.Parameter(typeof(SampleItem), "x");
-            var pe1 = Expression.Parameter(typeof(SampleItem), "y");
-
-            var pe = Expression.Parameter(typeof(SampleItem), "x");
-
-            dict.Add(pe0, "aaa");
-            dict.Add(pe1, "bbb");
-
-            var obj = new SampleItem(11, "bbb");*/
-
             var d = new Dictionary<string, string>() { { "aaa", "aaa" } };
             TestSerializeAndDeserialize(x => x.Name == d["aaa"], new SampleItem(1, "bbb"), false);
         }
@@ -73,15 +61,13 @@ namespace Meuzz.Linq.Serialization.Tests
         }
 
         [Fact]
-        public void TestWithFieldOfMyInstance()
+        public void TestWithPrivateField()
         {
-            Assert.ThrowsAny<ArgumentNullException>(() => TestSerializeAndDeserialize(x => _testValues.Contains(x.Name), new SampleItem(1, "bbb"), true));
-            var testValues = _testValues;
-            TestSerializeAndDeserialize(x => testValues.Contains(x.Name), new SampleItem(1, "bbb"), true);
+            Assert.Throws<InvalidOperationException>(() => TestSerializeAndDeserialize(x => _testValues.Contains(x.Name), new SampleItem(1, "bbb"), true));
         }
 
         [Fact]
-        public void TestWithFieldOfOuterInstance2()
+        public void TestWithAutoVariable()
         {
             var ss = new string[] { "aaa", "bbb" };
             TestSerializeAndDeserialize(x => x.Name == ss.Last(), new SampleItem(1, "bbb"), true);
@@ -89,10 +75,24 @@ namespace Meuzz.Linq.Serialization.Tests
         }
 
         [Fact]
-        public void TestWithFieldOfOuterInstance3()
+        public void TestWithAutoVariableAsCustomType()
         {
             var obj = new SampleItem(2, "xxx");
             TestSerializeAndDeserialize(x => x.Name != obj.Name, new SampleItem(1, "bbb"), true);
+        }
+
+        [Fact]
+        public void TestWithPrivateFieldIntoAutoVariable()
+        {
+            var testValues = _testValues;
+            TestSerializeAndDeserialize(x => testValues.Contains(x.Name), new SampleItem(1, "bbb"), true);
+        }
+
+        [Fact]
+        public void TesteWithPrivateFieldAndFunctionArgument()
+        { 
+            Action<string[]> action = (testValues) => TestSerializeAndDeserialize(x => testValues.Contains(x.Name), new SampleItem(1, "bbb"), true);
+            action(_testValues);
         }
 
         private string[] _testValues = new[] { "aaa", "bbb" };

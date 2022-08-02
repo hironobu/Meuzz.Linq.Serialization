@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Meuzz.Linq.Serialization.Core;
@@ -30,7 +32,7 @@ namespace Meuzz.Linq.Serialization
             else if (_typeDataManager.IsUsingFieldSpecs(serializedType) || serializedType.FullName.Contains('+') == true)
             {
                 assemblyName = null;
-                typeName = $"#{_typeDataManager.Pack(serializedType)}";
+                typeName = $"#{_typeDataManager.Pack(serializedType, true)}";
 
                 return;
             }
@@ -120,6 +122,7 @@ namespace Meuzz.Linq.Serialization
 
             var s = JsonConvert.SerializeObject(data, new JsonSerializerSettings()
             {
+                // ContractResolver = new PrivateContractResolver(),
                 TypeNameHandling = TypeNameHandling.Objects,
                 SerializationBinder = new CustomSerializationBinder(typeDataManager)
             });
@@ -169,6 +172,23 @@ namespace Meuzz.Linq.Serialization
         {
             var dd = Convert.FromBase64String(s);
             return Encoding.UTF8.GetString(dd);
+        }
+
+        class PrivateContractResolver : DefaultContractResolver
+        {
+            protected override List<MemberInfo> GetSerializableMembers(Type objectType)
+            {
+                var flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+                MemberInfo[] fields = objectType.GetFields(flags);
+                return fields
+                    .Concat(objectType.GetProperties(flags).Where(propInfo => propInfo.CanWrite))
+                    .ToList();
+            }
+
+            protected override IList<JsonProperty> CreateProperties(Type type, MemberSerialization memberSerialization)
+            {
+                return base.CreateProperties(type, MemberSerialization.Fields);
+            }
         }
     }
 }

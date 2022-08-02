@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace Meuzz.Linq.Serialization.Core
@@ -210,6 +208,12 @@ namespace Meuzz.Linq.Serialization.Core
 
                 if (_typeKeyReverseTable.TryGetValue(fullName, out var k))
                 {
+                    var d = _typeDataTable[k];
+
+                    if (usingFieldSpecs && !d.FieldSpecifications.Any())
+                    {
+                        d.FieldSpecifications = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Select(x => (x.Name, Pack(x.FieldType))).ToArray();
+                    }
                     return k;
                 }
 
@@ -348,6 +352,11 @@ namespace Meuzz.Linq.Serialization.Core
         public static MemberInfoData Pack(MemberInfo mi, TypeDataManager typeDataManager)
         {
             var data = new MemberInfoData();
+
+            if (mi is FieldInfo fi && !fi.IsPublic)
+            {
+                throw new InvalidOperationException($"Member access to private field is not allowd: {mi.DeclaringType.Name}.{mi.Name}");
+            }
 
             data.MemberString = mi.Name;
             data.DeclaringType = mi.DeclaringType != null ? typeDataManager.Pack(mi.DeclaringType) : null;

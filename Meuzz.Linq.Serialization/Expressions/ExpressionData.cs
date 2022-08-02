@@ -224,7 +224,19 @@ namespace Meuzz.Linq.Serialization.Expressions
             data.Type = typeDataManager.Pack(ce.Type, true);
             data.CanReduce = ce.CanReduce;
 
-            data.Value = ce.Value;
+#if false
+            var t = typeDataManager.UnpackFromName(data.Type);
+            var obj = Activator.CreateInstance(t);
+            foreach (var f in t.GetFields())
+            {
+                var f0 = ce.Type.GetField(f.Name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
+                var v0 = f0?.GetValue(ce.Value);
+                f.SetValue(obj, v0);
+            }
+#else
+            var obj = ce.Value;
+#endif
+            data.Value = obj;
     
             return data;
         }

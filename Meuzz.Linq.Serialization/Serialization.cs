@@ -978,11 +978,11 @@ namespace Meuzz.Linq.Serialization
 
                     case ConstantExpressionData ce:
                         writer.WritePropertyName("Value");
-                        var t = ce.Value!.GetType();
-                        if (t.GetCustomAttribute<CompilerGeneratedAttribute>() != null)
+                        var t = ce.Value?.GetType() ?? typeof(object);
+                        if (_typeDataManager.IsUsingFieldSpecs(t))
                         {
                             writer.WriteStartObject();
-                            foreach (var f in t.GetFields())
+                            foreach (var f in t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
                             {
                                 writer.WritePropertyName(f.Name);
                                 var v = f.GetValue(ce.Value);

@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using Meuzz.Linq.Serialization;
-using System.Diagnostics;
+using TestClass;
 
 namespace ServerTest
 {
@@ -36,13 +32,17 @@ namespace ServerTest
 
                     var s = Encoding.UTF8.GetString(msg);
 
-                    var ff = JsonNetSerializer.Deserialize<Func<string, bool>>(s);
+                    var ff = JsonNetSerializer.Deserialize<Func<SampleItem, bool>>(s);
 
-                    Debug.WriteLine(ff("hogehoge"));
-                    Debug.WriteLine(s);
+                    var ret = ff(new SampleItem(1, "hogehoge"));
+                    Console.WriteLine(ret); // assumed "True"
+
+                    var ret2 = ff(new SampleItem(2, "fugafuga"));
+                    Console.WriteLine(ret2); // assumed "False"
+
+                    client.Close();
                 }
             }
-
         }
     }
 }

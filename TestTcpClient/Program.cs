@@ -1,9 +1,8 @@
-﻿using System;
-using System.Text;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.IO;
+using System.Text;
 using Meuzz.Linq.Serialization;
+using TestClass;
 
 namespace TcpClient
 {
@@ -11,7 +10,7 @@ namespace TcpClient
     {
         private static void Main(String[] args)
         {
-            Thread.Sleep(5000);
+            Thread.Sleep(3000);
 
             IPHostEntry iphostInfo = Dns.GetHostEntry("localhost");
             IPAddress ipAddress = iphostInfo.AddressList[0];
@@ -23,11 +22,10 @@ namespace TcpClient
             {
                 client.Connect(ipEndpoint);
 
-                Console.WriteLine("Socket created to {0}", client.RemoteEndPoint.ToString());
+                Console.WriteLine("Socket created to {0}", client.RemoteEndPoint?.ToString());
 
-                // byte[] sendmsg = Encoding.UTF8.GetBytes("This is from Client\n");
                 var ss = "hogehoge";
-                var s = JsonNetSerializer.Serialize<Func<string, bool>>(x => x == ss);
+                var s = JsonNetSerializer.Serialize<Func<SampleItem, bool>>(x => x.Name == ss);
                 var data = Encoding.UTF8.GetBytes((string)s);
 
                 int n = client.Send(data);
@@ -47,7 +45,6 @@ namespace TcpClient
 
             Console.WriteLine("Transmission end.");
             Console.ReadKey();
-
         }
     }
 }

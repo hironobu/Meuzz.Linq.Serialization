@@ -7,36 +7,124 @@ using System.Text.RegularExpressions;
 
 namespace Meuzz.Linq.Serialization.Core
 {
+    /// <summary>
+    ///   型情報をシリアライズ可能な形態(<see cref="TypeData"/>)に変換するためのクラス。
+    /// </summary>
     public class TypeDataManager
     {
+        /// <summary>
+        ///   コンストラクター。
+        /// </summary>
         public TypeDataManager()
         {
             _assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(_assemblyName, AssemblyBuilderAccess.Run);
             _moduleBuilder = _assemblyBuilder.DefineDynamicModule("MyDynamicModule");
         }
-        /*
-        public string GetShortName(string longName)
-        {
-            lock (_typeNameTable)
-            {
-                var k = _typeNameTable.FirstOrDefault(x => x.Value == longName).Key;
-                if (k != null)
-                {
-                    return k;
-                }
 
-                var c = $"_{_typeNameTable.Count()}";
-                _typeNameTable.Add(c, longName);
-                return c;
+        /// <summary>
+        ///   パック化された型データ。
+        /// </summary>
+        public IEnumerable<TypeData> Types => _typeDataTable.Values;
+
+        /// <summary>
+        ///   パック化されたデータから型情報を復元する。
+        /// </summary>
+        /// <param name="name">パック化された型データキー。</param>
+        /// <returns>アンパック化された型情報。</returns>
+        public Type UnpackFromName(string name)
+        {
+            var typeData = _typeDataTable[name];
+            return ReconstructType(typeData.FullQualifiedTypeString, typeData.FieldSpecifications);
+        }
+
+        /// <summary>
+        ///   対象の型情報について、フィールド情報もパック済みか否か。
+        /// </summary>
+        /// <param name="t">対象の型情報クラス。</param>
+        /// <returns>フィールド情報を含んだパック化が行われていれば<c>true</c>。</returns>
+        public bool IsUsingFieldSpecs(Type t)
+        {
+            if (t.AssemblyQualifiedName == null || t.FullName == null)
+            {
+                return false;
+            }
+
+            lock (_typeDataTable)
+            {
+                return _typeKeyReverseTable.ContainsKey(t.FullName);
             }
         }
 
-        public string GetLongName(string shortName)
+        /// <summary>
+        ///   型情報(<see cref="System.Type"/>)をシリアライズ可能な状態に変換する。
+        /// </summary>
+        /// <param name="t">対象の型情報クラス。</param>
+        /// <param name="usingFieldSpecs">シリアライズ時にフィールド情報も保存する場合は<c>true</c>。</param>
+        /// <returns>変換されたキー文字列(ランダム16進)。</returns>
+        /// <exception cref="ArgumentException"><paramref name="t"/>のプロパティ(<see cref="Type.AssemblyQualifiedName"/>または<see cref="Type.FullName"/>)が<c>null</c>だった時。</exception>
+        public string Pack(Type t, bool usingFieldSpecs = false)
         {
-            return _typeNameTable[shortName];
-        }*/
+            if (t.AssemblyQualifiedName == null || t.FullName == null)
+            {
+                throw new ArgumentException("t");
+            }
 
-        public Type? CreateType(string typeName, (string, string)[] fields, Type? parentType)
+            lock (_typeDataTable)
+            {
+                var fullName = t.FullName.Replace("+", "@");
+                var assemblyQualifiedName = t.AssemblyQualifiedName.Replace("+", "@");
+
+                if (_typeKeyReverseTable.TryGetValue(fullName, out var k))
+                {
+                    var d = _typeDataTable[k];
+
+                    if (usingFieldSpecs && !d.FieldSpecifications.Any())
+                    {
+                        d.FieldSpecifications = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Select(x => (x.Name, Pack(x.FieldType))).ToArray();
+                    }
+                    return k;
+                }
+
+                var data = new TypeData();
+
+                if (usingFieldSpecs)
+                {
+                    data.FieldSpecifications = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Select(x => (x.Name, Pack(x.FieldType))).ToArray();
+                }
+
+                var random = new Random();
+                while (true)
+                {
+                    var key = random.Next().ToString("X8");
+                    if (!_typeDataTable.TryGetValue(key, out var _))
+                    {
+                        data.Key = key;
+                        data.FullQualifiedTypeString = usingFieldSpecs ? fullName + "@" + key : assemblyQualifiedName;
+                        _typeDataTable.Add(key, data);
+                        _typeKeyReverseTable.Add(fullName, key);
+                        return key;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        ///   パック化された型データを読み込む。
+        /// </summary>
+        /// <param name="typeDatas">パック化された型情報。</param>
+        public void LoadTypes(IEnumerable<TypeData> typeDatas)
+        {
+            _typeDataTable = typeDatas.ToDictionary(x => x.Key, x => x);
+        }
+
+        /// <summary>
+        ///   型名とフィールド情報から新しい型を生成する。
+        /// </summary>
+        /// <param name="typeName"></param>
+        /// <param name="fields"></param>
+        /// <param name="parentType"></param>
+        /// <returns></returns>
+        private Type? CreateType(string typeName, (string, string)[] fields, Type? parentType)
         {
             TypeBuilder typeBuilder = _moduleBuilder.DefineType(typeName,
                 TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.AutoLayout | (parentType == null ? TypeAttributes.Public : TypeAttributes.Sealed), // | TypeAttributes.ExplicitLayout,
@@ -50,13 +138,20 @@ namespace Meuzz.Linq.Serialization.Core
             return typeBuilder.CreateType();
         }
 
+        /// <summary>
+        ///   ジェネリック型を生成する。
+        /// </summary>
+        /// <param name="assemblyQualifiedName">アセンブリ名も形式での含む型名。</param>
+        /// <param name="fieldSpecs">生成する型のフィールド情報。</param>
+        /// <returns>生成された型情報。</returns>
+        /// <exception cref="ArgumentException"></exception>
         private Type? ConstructGenericType(string assemblyQualifiedName, (string, string)[] fieldSpecs)
         {
-            Regex regex = new Regex(@"^(?<name>\w+(\.\w+)*)`(?<count>\d)\[(?<subtypes>\[.*\])\](, (?<assembly>\w+(\.\w+)*)[\w\s,=\.]+)$?", RegexOptions.Singleline | RegexOptions.ExplicitCapture);
-            Match match = regex.Match(assemblyQualifiedName);
+            var regex = new Regex(@"^(?<name>\w+(\.\w+)*)`(?<count>\d)\[(?<subtypes>\[.*\])\](, (?<assembly>\w+(\.\w+)*)[\w\s,=\.]+)$?", RegexOptions.Singleline | RegexOptions.ExplicitCapture);
+            var match = regex.Match(assemblyQualifiedName);
             if (!match.Success)
             {
-                throw new Exception($"Unable to parse the type's assembly qualified name: {assemblyQualifiedName}");
+                throw new ArgumentException($"Unable to parse the type's assembly qualified name: {assemblyQualifiedName}");
             }
 
             var typeName = match.Groups["name"].Value;
@@ -99,11 +194,10 @@ namespace Meuzz.Linq.Serialization.Core
 
             if (n != 0)
             {
-                // This shouldn't ever happen!
-                throw new Exception("Generic type argument count mismatch! Type name: " + assemblyQualifiedName);
+                throw new ArgumentException("Generic type argument count mismatch! Type name: " + assemblyQualifiedName);
             }
 
-            Type[] types = new Type[typeNames.Count];
+            var types = new Type[typeNames.Count];
             for (int i = 0; i < types.Length; i++)
             {
                 try
@@ -111,7 +205,6 @@ namespace Meuzz.Linq.Serialization.Core
                     var t = ReconstructType(typeNames[i], fieldSpecs);
                     if (t == null)
                     {
-                        // if throwOnError, should not reach this point if couldn't create the type
                         return null;
                     }
 
@@ -119,14 +212,21 @@ namespace Meuzz.Linq.Serialization.Core
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception($"Unable to reconstruct generic type. Failed on creating the type argument {(i + 1)}: {typeNames[i]}. Error message: {ex.Message}");
+                    throw new InvalidOperationException($"Unable to reconstruct generic type. Failed on creating the type argument {(i + 1)}: {typeNames[i]}. Error message: {ex.Message}", ex);
                 }
             }
 
             return genericType.MakeGenericType(types);
         }
 
-        public Type ReconstructType(string assemblyQualifiedName, (string, string)[] fieldSpecs)
+        /// <summary>
+        ///   型情報を生成する。
+        /// </summary>
+        /// <param name="assemblyQualifiedName">アセンブリ名を含む形式の型名。</param>
+        /// <param name="fieldSpecs">フィールド定義情報。</param>
+        /// <returns>生成された型情報。</returns>
+        /// <exception cref="NotImplementedException"></exception>
+        private Type ReconstructType(string assemblyQualifiedName, (string, string)[] fieldSpecs)
         {
             Type? type = null;
 
@@ -169,82 +269,6 @@ namespace Meuzz.Linq.Serialization.Core
         private AssemblyName _assemblyName = new AssemblyName("MyDynamicAssembly");
         private AssemblyBuilder _assemblyBuilder;
         private ModuleBuilder _moduleBuilder;
-
-        private Type Unpack(TypeData typeData)
-        {
-            return ReconstructType(typeData.FullQualifiedTypeString, typeData.FieldSpecifications);
-        }
-
-        public Type UnpackFromName(string name)
-        {
-            var typeData = _typeDataTable[name];
-            return Unpack(typeData);
-        }
-
-        public bool IsUsingFieldSpecs(Type t)
-        {
-            if (t.AssemblyQualifiedName == null)
-            {
-                return false;
-            }
-
-            lock (_typeDataTable)
-            {
-                return _typeKeyReverseTable.ContainsKey(t.FullName);
-            }
-        }
-
-        public string Pack(Type t, bool usingFieldSpecs = false)
-        {
-            if (t.AssemblyQualifiedName == null || t.FullName == null)
-            {
-                throw new InvalidOperationException();
-            }
-
-            lock (_typeDataTable)
-            {
-                var fullName = t.FullName.Replace("+", "@");
-                var assemblyQualifiedName = t.AssemblyQualifiedName.Replace("+", "@");
-
-                if (_typeKeyReverseTable.TryGetValue(fullName, out var k))
-                {
-                    var d = _typeDataTable[k];
-
-                    if (usingFieldSpecs && !d.FieldSpecifications.Any())
-                    {
-                        d.FieldSpecifications = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Select(x => (x.Name, Pack(x.FieldType))).ToArray();
-                    }
-                    return k;
-                }
-
-                var data = new TypeData();
-
-                if (usingFieldSpecs)
-                {
-                    data.FieldSpecifications = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Select(x => (x.Name, Pack(x.FieldType))).ToArray();
-                }
-
-                var random = new Random();
-                while (true)
-                {
-                    var key = random.Next().ToString("X8");
-                    if (!_typeDataTable.TryGetValue(key, out var _))
-                    {
-                        data.Key = key;
-                        data.FullQualifiedTypeString = usingFieldSpecs ? fullName + "@" + key : assemblyQualifiedName;
-                        _typeDataTable.Add(key, data);
-                        _typeKeyReverseTable.Add(fullName, key);
-                        return key;
-                    }
-                }
-            }
-        }
-
-        public IEnumerable<TypeData> Types => _typeDataTable.Values;
-        public void LoadTypes(IEnumerable<TypeData> typeDatas)
-        {
-            _typeDataTable = typeDatas.ToDictionary(x => x.Key, x => x);
-        }
 
         private IDictionary<string, TypeData> _typeDataTable = new Dictionary<string, TypeData>();
         private IDictionary<string, string> _typeKeyReverseTable = new Dictionary<string, string>();

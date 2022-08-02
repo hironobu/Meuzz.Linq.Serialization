@@ -1,4 +1,5 @@
 ﻿using System;
+using TestClass;
 using Xunit;
 
 namespace Meuzz.Linq.Serialization.Tests

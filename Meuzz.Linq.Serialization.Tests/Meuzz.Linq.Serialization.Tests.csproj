@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Meuzz.Linq.Serialization\Meuzz.Linq.Serialization.csproj" />
+    <ProjectReference Include="..\TestClass\TestClass.csproj" />
   </ItemGroup>
 
 </Project>

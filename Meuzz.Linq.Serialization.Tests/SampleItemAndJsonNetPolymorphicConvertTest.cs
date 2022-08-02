@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
+﻿using System.Diagnostics;
 using Newtonsoft.Json;
+using TestClass;
 using Xunit;
 
 namespace Meuzz.Linq.Serialization.Tests

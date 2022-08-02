@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using Meuzz.Linq.Serialization;
+using Meuzz.Linq.Serialization.Serializers;
 using TestClass;
 
 namespace TcpClient

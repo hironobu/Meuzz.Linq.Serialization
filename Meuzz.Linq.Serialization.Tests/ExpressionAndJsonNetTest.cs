@@ -1,4 +1,5 @@
 ﻿using System;
+using Meuzz.Linq.Serialization.Serializers;
 using TestClass;
 using Xunit;
 

@@ -4,14 +4,13 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using Meuzz.Linq.Serialization.Core;
 using Meuzz.Linq.Serialization.Expressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-namespace Meuzz.Linq.Serialization
+namespace Meuzz.Linq.Serialization.Serializers
 {
     public class CustomSerializationBinder : DefaultSerializationBinder
     {

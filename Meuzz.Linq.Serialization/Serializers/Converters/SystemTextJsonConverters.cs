@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Meuzz.Linq.Serialization.Core;
 using Meuzz.Linq.Serialization.Expressions;
 
-namespace Meuzz.Linq.Serialization
+namespace Meuzz.Linq.Serialization.Serializers.Converters
 {
     public static class TypeHelper
     {
@@ -23,109 +22,6 @@ namespace Meuzz.Linq.Serialization
                 }
             }
             return null;
-        }
-    }
-
-    public class JsonDataJsonConverter : JsonConverter<JsonData>
-    {
-        public override bool CanConvert(Type typeToConvert)
-        {
-            return typeof(JsonData).IsAssignableFrom(typeToConvert);
-        }
-
-        public override JsonData Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            if (reader.TokenType != JsonTokenType.StartObject)
-            {
-                throw new JsonException();
-            }
-
-            if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "$type")
-            {
-                throw new JsonException();
-            }
-            if (!reader.Read() || reader.TokenType != JsonTokenType.String)
-            {
-                throw new JsonException();
-            }
-            var type = reader.GetString();
-
-            var data = new Dictionary<string, object>();
-            while (true)
-            {
-                if (!reader.Read())
-                {
-                    throw new JsonException();
-                }
-
-                if (reader.TokenType == JsonTokenType.EndObject)
-                {
-                    break;
-                }
-
-                if (reader.TokenType != JsonTokenType.PropertyName)
-                {
-                    throw new JsonException();
-                }
-            }
-
-            return new JsonData()
-            {
-                Type = type,
-                Data = data,
-            };
-        }
-
-        public override void Write(Utf8JsonWriter writer, JsonData value, JsonSerializerOptions options) => throw new NotImplementedException();
-    }
-
-    public class AnyObjectJsonConverter<T> : JsonConverter<T> where T : notnull
-    {
-        public override bool CanConvert(Type typeToConvert)
-        {
-            return typeof(T).IsAssignableFrom(typeToConvert);
-        }
-
-        public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
-        {
-            writer.WriteStartObject();
-            writer.WriteString("$type", value.GetType().FullName);
-            foreach (var f in value.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic))
-            {
-                writer.WritePropertyName(f.Name);
-                var v = f.GetValue(value);
-                if (v == null)
-                {
-                    writer.WriteNullValue();
-                }
-                else
-                {
-                    switch (v)
-                    {
-                        case int n:
-                            writer.WriteNumberValue(n);
-                            break;
-                        case long l:
-                            writer.WriteNumberValue(l);
-                            break;
-                        case DateTime dt:
-                            writer.WriteStringValue(dt);
-                            break;
-                        case string s:
-                            writer.WriteStringValue(s);
-                            break;
-                        default:
-                            JsonSerializer.Serialize(v, v.GetType(), options);
-                            break;
-                    }
-                }
-            }
-            writer.WriteEndObject();
         }
     }
 
@@ -573,7 +469,7 @@ namespace Meuzz.Linq.Serialization
             {
                 throw new JsonException();
             }
-            if (!reader.Read() || (reader.TokenType != JsonTokenType.True && reader.TokenType != JsonTokenType.False))
+            if (!reader.Read() || reader.TokenType != JsonTokenType.True && reader.TokenType != JsonTokenType.False)
             {
                 throw new JsonException();
             }
@@ -638,7 +534,7 @@ namespace Meuzz.Linq.Serialization
                         {
                             throw new JsonException();
                         }
-                        if (!reader.Read() || (reader.TokenType != JsonTokenType.True && reader.TokenType != JsonTokenType.False))
+                        if (!reader.Read() || reader.TokenType != JsonTokenType.True && reader.TokenType != JsonTokenType.False)
                         {
                             throw new JsonException();
                         }
@@ -663,7 +559,7 @@ namespace Meuzz.Linq.Serialization
                         {
                             throw new JsonException();
                         }
-                        if (!reader.Read() || (reader.TokenType != JsonTokenType.True && reader.TokenType != JsonTokenType.False))
+                        if (!reader.Read() || reader.TokenType != JsonTokenType.True && reader.TokenType != JsonTokenType.False)
                         {
                             throw new JsonException();
                         }
@@ -709,7 +605,7 @@ namespace Meuzz.Linq.Serialization
                         {
                             throw new JsonException();
                         }
-                        if (!reader.Read() || (reader.TokenType != JsonTokenType.True && reader.TokenType != JsonTokenType.False))
+                        if (!reader.Read() || reader.TokenType != JsonTokenType.True && reader.TokenType != JsonTokenType.False)
                         {
                             throw new JsonException();
                         }
@@ -719,7 +615,7 @@ namespace Meuzz.Linq.Serialization
                         {
                             throw new JsonException();
                         }
-                        if (!reader.Read() || (reader.TokenType != JsonTokenType.True && reader.TokenType != JsonTokenType.False))
+                        if (!reader.Read() || reader.TokenType != JsonTokenType.True && reader.TokenType != JsonTokenType.False)
                         {
                             throw new JsonException();
                         }

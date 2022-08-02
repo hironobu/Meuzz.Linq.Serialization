@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -37,7 +38,7 @@ namespace Meuzz.Linq.Serialization.Core
             return _typeNameTable[shortName];
         }*/
 
-        public Type? CreateType(string typeName, (string, Type)[] fields, Type? parentType)
+        public Type? CreateType(string typeName, (string, string)[] fields, Type? parentType)
         {
             TypeBuilder typeBuilder = _moduleBuilder.DefineType(typeName,
                 TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.AutoLayout | (parentType == null ? TypeAttributes.Public : TypeAttributes.Sealed), // | TypeAttributes.ExplicitLayout,
@@ -45,13 +46,13 @@ namespace Meuzz.Linq.Serialization.Core
 
             foreach (var (k, v) in fields)
             {
-                typeBuilder.DefineField(k, v, FieldAttributes.Public);
+                typeBuilder.DefineField(k, UnpackFromName(v), FieldAttributes.Public);
             }
 
             return typeBuilder.CreateType();
         }
 
-        private Type? ConstructGenericType(string assemblyQualifiedName, (string, Type)[] fieldSpecs)
+        private Type? ConstructGenericType(string assemblyQualifiedName, (string, string)[] fieldSpecs)
         {
             Regex regex = new Regex(@"^(?<name>\w+(\.\w+)*)`(?<count>\d)\[(?<subtypes>\[.*\])\](, (?<assembly>\w+(\.\w+)*)[\w\s,=\.]+)$?", RegexOptions.Singleline | RegexOptions.ExplicitCapture);
             Match match = regex.Match(assemblyQualifiedName);
@@ -127,15 +128,15 @@ namespace Meuzz.Linq.Serialization.Core
             return genericType.MakeGenericType(types);
         }
 
-        public Type ReconstructType(string assemblyQualifiedName, (string, Type)[] fieldSpecs)
+        public Type ReconstructType(string assemblyQualifiedName, (string, string)[] fieldSpecs)
         {
             Type? type = null;
 
+            var fullNameWithoutAssemblyName = assemblyQualifiedName.Split(",").First();
             var referencedAssemblies = AppDomain.CurrentDomain.GetAssemblies().Where(assembly => assembly.GetName().Name == _assemblyName.Name).ToArray();
 
             foreach (var asm in referencedAssemblies)
             {
-                var fullNameWithoutAssemblyName = assemblyQualifiedName.Split(",").First();
                 type = asm.GetType(fullNameWithoutAssemblyName, throwOnError: false);
                 if (type != null)
                 {
@@ -157,7 +158,6 @@ namespace Meuzz.Linq.Serialization.Core
 
             if (type == null)
             {
-                var fullNameWithoutAssemblyName = assemblyQualifiedName.Split(",").First();
                 type = CreateType(fullNameWithoutAssemblyName, fieldSpecs, null);
                 if (type == null)
                 {
@@ -192,7 +192,7 @@ namespace Meuzz.Linq.Serialization.Core
 
             lock (_typeDataTable)
             {
-                return _typeKeyReverseTable.ContainsKey(t.AssemblyQualifiedName);
+                return _typeKeyReverseTable.ContainsKey(t.FullName);
             }
         }
 
@@ -205,20 +205,19 @@ namespace Meuzz.Linq.Serialization.Core
 
             lock (_typeDataTable)
             {
-                var fullQualifiedName = t.AssemblyQualifiedName;
+                var fullName = t.FullName.Replace("+", "@");
+                var assemblyQualifiedName = t.AssemblyQualifiedName.Replace("+", "@");
 
-                if (_typeKeyReverseTable.TryGetValue(fullQualifiedName, out var k))
+                if (_typeKeyReverseTable.TryGetValue(fullName, out var k))
                 {
                     return k;
                 }
 
                 var data = new TypeData();
 
-                data.FullQualifiedTypeString = fullQualifiedName;
-
                 if (usingFieldSpecs)
                 {
-                    data.FieldSpecifications = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Select(x => (x.Name, x.FieldType)).ToArray();
+                    data.FieldSpecifications = t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Select(x => (x.Name, Pack(x.FieldType))).ToArray();
                 }
 
                 var random = new Random();
@@ -228,8 +227,9 @@ namespace Meuzz.Linq.Serialization.Core
                     if (!_typeDataTable.TryGetValue(key, out var _))
                     {
                         data.Key = key;
+                        data.FullQualifiedTypeString = usingFieldSpecs ? fullName + "@" + key : assemblyQualifiedName;
                         _typeDataTable.Add(key, data);
-                        _typeKeyReverseTable.Add(fullQualifiedName, key);
+                        _typeKeyReverseTable.Add(fullName, key);
                         return key;
                     }
                 }
@@ -253,7 +253,7 @@ namespace Meuzz.Linq.Serialization.Core
 
         public string FullQualifiedTypeString { get; set; } = string.Empty;
 
-        public (string, Type)[] FieldSpecifications { get; set; } = new (string, Type)[] { };
+        public (string, string)[] FieldSpecifications { get; set; } = new (string, string)[] { };
     }
 
     public class ConstructorInfoData

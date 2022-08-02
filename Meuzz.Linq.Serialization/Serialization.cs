@@ -174,7 +174,7 @@ namespace Meuzz.Linq.Serialization
                 throw new JsonException();
             }
 
-            var specs = new List<(string, Type)>();
+            var specs = new List<(string, string)>();
             while (true)
             {
                 if (reader.Read() && reader.TokenType == JsonTokenType.EndObject)
@@ -194,7 +194,7 @@ namespace Meuzz.Linq.Serialization
                 }
 
                 var fieldType = reader.GetString();
-                var value = TypeHelper.GetTypeFromFullName(fieldType);
+                var value = reader.GetString(); //  TypeHelper.GetTypeFromFullName(fieldType);
                 if (value == null)
                 {
                     throw new NotImplementedException();
@@ -227,7 +227,7 @@ namespace Meuzz.Linq.Serialization
             {
                 var type = spec.Item2;
 
-                writer.WriteString(spec.Item1, type.FullName); // @TODO
+                writer.WriteString(spec.Item1, type);
             }
             writer.WriteEndObject();
 

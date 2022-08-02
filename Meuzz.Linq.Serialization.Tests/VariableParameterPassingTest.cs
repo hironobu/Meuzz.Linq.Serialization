@@ -75,7 +75,7 @@ namespace Meuzz.Linq.Serialization.Tests
         [Fact]
         public void TestWithFieldOfMyInstance()
         {
-            TestSerializeAndDeserialize(x => _testValues.Contains(x.Name), new SampleItem(1, "bbb"), true);
+            Assert.ThrowsAny<ArgumentNullException>(() => TestSerializeAndDeserialize(x => _testValues.Contains(x.Name), new SampleItem(1, "bbb"), true));
             var testValues = _testValues;
             TestSerializeAndDeserialize(x => testValues.Contains(x.Name), new SampleItem(1, "bbb"), true);
         }

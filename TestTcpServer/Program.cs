@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using Meuzz.Linq.Serialization.Serializers;
+using Meuzz.Linq.Serialization;
 using TestClass;
 
 namespace ServerTest
@@ -30,9 +30,11 @@ namespace ServerTest
                     byte[] msg = new byte[1024 * 64];
                     ns.Read(msg, 0, msg.Length);
 
+                    var serializer = ExpressionSerializer.CreateInstance();
+
                     var s = Encoding.UTF8.GetString(msg);
 
-                    var ff = new JsonNetSerializer().Deserialize<Func<SampleItem, bool>>(s);
+                    var ff = serializer.Deserialize<Func<SampleItem, bool>>(s);
 
                     var ret = ff(new SampleItem(1, "hogehoge"));
                     Console.WriteLine(ret); // assumed "True"

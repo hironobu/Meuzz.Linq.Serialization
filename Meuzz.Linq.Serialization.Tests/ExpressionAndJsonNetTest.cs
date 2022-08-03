@@ -1,5 +1,4 @@
 ﻿using System;
-using Meuzz.Linq.Serialization.Serializers;
 using TestClass;
 using Xunit;
 
@@ -10,9 +9,11 @@ namespace Meuzz.Linq.Serialization.Tests
         [Fact]
         public void TestSerializeAndDeserializeWithImmediateValues()
         {
-            var data = new JsonNetSerializer().Serialize<Func<SampleItem, bool>>(x => x.Name == "bbb");
+            var serializer = ExpressionSerializer.CreateInstance();
 
-            var ff = new JsonNetSerializer().Deserialize<Func<SampleItem, bool>>(data);
+            var data = serializer.Serialize<Func<SampleItem, bool>>(x => x.Name == "bbb");
+
+            var ff = serializer.Deserialize<Func<SampleItem, bool>>(data);
 
             var obj = new SampleItem(1, "bbb");
 
@@ -24,10 +25,12 @@ namespace Meuzz.Linq.Serialization.Tests
         [Fact]
         public void TestSerializeAndDeserializeWithVariables()
         {
-            var s = "bbb";
-            var data = new JsonNetSerializer().Serialize<Func<SampleItem, bool>>(x => x.Name == s);
+            var serializer = ExpressionSerializer.CreateInstance();
 
-            var ff = new JsonNetSerializer().Deserialize<Func<SampleItem, bool>>(data);
+            var s = "bbb";
+            var data = serializer.Serialize<Func<SampleItem, bool>>(x => x.Name == s);
+
+            var ff = serializer.Deserialize<Func<SampleItem, bool>>(data);
 
             var obj = new SampleItem(1, "bbb");
 

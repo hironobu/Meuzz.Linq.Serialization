@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using Meuzz.Linq.Serialization.Core;
-using Meuzz.Linq.Serialization.Expressions;
+using Meuzz.Linq.Serialization.Core.Expressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -62,7 +62,7 @@ namespace Meuzz.Linq.Serialization.Serializers
 
     public class JsonNetSerializer : ExpressionSerializer
     {
-        public override object Serialize<T>(Expression<T> f)
+        public override string Serialize<T>(Expression<T> f)
         {
             var typeDataManager = new TypeDataManager();
             var data = ExpressionData.Pack(f, typeDataManager);
@@ -74,18 +74,18 @@ namespace Meuzz.Linq.Serialization.Serializers
                 SerializationBinder = new CustomSerializationBinder(typeDataManager)
             });
 
-            Debug.WriteLine($"1: {s}");
+            //Debug.WriteLine($"1: {s}");
             var s2 = JsonConvert.SerializeObject(new ExpressionPacket(EncodeBase64(s), typeDataManager.Types), new JsonSerializerSettings());
 
-            Debug.WriteLine($"2: {s2}");
+            //Debug.WriteLine($"2: {s2}");
 
             return s2;
         }
 
-        public override T Deserialize<T>(object o)
+        public override T Deserialize<T>(string s)
         {
             var typeDataManager = new TypeDataManager();
-            var packet = JsonConvert.DeserializeObject<ExpressionPacket>((string)o, new JsonSerializerSettings());
+            var packet = JsonConvert.DeserializeObject<ExpressionPacket>(s, new JsonSerializerSettings());
             if (packet == null)
             {
                 throw new NotImplementedException();
@@ -154,7 +154,7 @@ namespace Meuzz.Linq.Serialization.Serializers
                     typeName = $"@{(int)serializedType.GetExpressionDataType()}";
                     return;
                 }
-                else if (_typeDataManager.IsUsingFieldSpecs(serializedType) || serializedType.FullName.Contains('+') == true)
+                else if (_typeDataManager.IsUsingFieldSpecs(serializedType) || serializedType.FullName?.Contains('+') == true)
                 {
                     assemblyName = null;
                     typeName = $"#{_typeDataManager.Pack(serializedType, true)}";

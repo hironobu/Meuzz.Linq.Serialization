@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using Meuzz.Linq.Serialization.Serializers;
+using Meuzz.Linq.Serialization;
 using TestClass;
 
 namespace TcpClient
@@ -24,8 +24,10 @@ namespace TcpClient
 
                 Console.WriteLine("Socket created to {0}", client.RemoteEndPoint?.ToString());
 
+                var serializer = ExpressionSerializer.CreateInstance();
+
                 var ss = "hogehoge";
-                var s = new JsonNetSerializer().Serialize<Func<SampleItem, bool>>(x => x.Name == ss);
+                var s = serializer.Serialize<Func<SampleItem, bool>>(x => x.Name == ss);
                 var data = Encoding.UTF8.GetBytes((string)s);
 
                 int n = client.Send(data);

@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Meuzz.Linq.Serialization.Core;
-using Meuzz.Linq.Serialization.Expressions;
+using Meuzz.Linq.Serialization.Core.Expressions;
 
 namespace Meuzz.Linq.Serialization.Serializers.Converters
 {

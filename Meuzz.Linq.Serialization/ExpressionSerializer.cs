@@ -1,14 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Text;
+using Meuzz.Linq.Serialization.Serializers;
 
 namespace Meuzz.Linq.Serialization
 {
     public abstract class ExpressionSerializer
     {
-        public abstract object Serialize<T>(Expression<T> f);
+        public abstract string Serialize<T>(Expression<T> f) where T : Delegate;
 
-        public abstract T Deserialize<T>(object o) where T : Delegate;
+        public abstract T Deserialize<T>(string s) where T : Delegate;
+
+        public static ExpressionSerializer CreateInstance()
+        {
+            return new JsonNetSerializer();
+        }
     }
 }

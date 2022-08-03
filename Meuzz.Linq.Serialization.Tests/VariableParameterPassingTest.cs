@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using Meuzz.Linq.Serialization.Serializers;
 using TestClass;
 using Xunit;
 
@@ -17,8 +16,10 @@ namespace Meuzz.Linq.Serialization.Tests
 
             var ff = (Func<SampleItem, bool>)ExpressionSerializer.Deserialize(data);
 #else
-            var data = new JsonNetSerializer().Serialize(f);
-            var ff = new JsonNetSerializer().Deserialize<Func<SampleItem, bool>>(data);
+            var serializer = ExpressionSerializer.CreateInstance();
+
+            var data = serializer.Serialize(f);
+            var ff = serializer.Deserialize<Func<SampleItem, bool>>(data);
 #endif
 
             var ret = ff(obj);

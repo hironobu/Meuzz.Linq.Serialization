@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Text;
 using Meuzz.Linq.Serialization.Core;
 using Meuzz.Linq.Serialization.Core.Expressions;
@@ -27,7 +24,7 @@ namespace Meuzz.Linq.Serialization.Serializers
         MethodInfo,
     }
 
-    public static class ExpressionDataTypesExtensions
+    static class ExpressionDataTypesExtensions
     {
         public static TypeSerialization GetExpressionDataType(this Type self) => self.Name switch
         {
@@ -60,8 +57,12 @@ namespace Meuzz.Linq.Serialization.Serializers
         };
     }
 
-    public class JsonNetSerializer : ExpressionSerializer
+    /// <summary>
+    ///   Json.NETを使用してシリアライズを行うくらす。
+    /// </summary>
+    class JsonNetSerializer : ExpressionSerializer
     {
+        /// <inheritdoc/>
         public override string Serialize<T>(Expression<T> f)
         {
             var typeDataManager = new TypeDataManager();
@@ -78,10 +79,11 @@ namespace Meuzz.Linq.Serialization.Serializers
             var s2 = JsonConvert.SerializeObject(new ExpressionPacket(EncodeBase64(s), typeDataManager.Types), new JsonSerializerSettings());
 
             //Debug.WriteLine($"2: {s2}");
-
             return s2;
         }
 
+        /// <inheritdoc/>
+        /// <exception cref="NotImplementedException"></exception>
         public override T Deserialize<T>(string s)
         {
             var typeDataManager = new TypeDataManager();
@@ -109,18 +111,29 @@ namespace Meuzz.Linq.Serialization.Serializers
             return (T)t2.Compile();
         }
 
+        /// <summary>
+        ///   base64形式のエンコーディングを行う。
+        /// </summary>
+        /// <param name="s">文字列。</param>
+        /// <returns>base64エンコードされた文字列データ。</returns>
         private static string EncodeBase64(string s)
         {
             var bb = Encoding.UTF8.GetBytes(s);
             return Convert.ToBase64String(bb);
         }
 
+        /// <summary>
+        ///   base64形式のデコーディングを行う。
+        /// </summary>
+        /// <param name="s">base64エンコードされた文字列型データ。</param>
+        /// <returns>デコードされた文字列型データ。</returns>
         private static string DecodeBase64(string s)
         {
             var dd = Convert.FromBase64String(s);
             return Encoding.UTF8.GetString(dd);
         }
 
+#if false
         class PrivateContractResolver : DefaultContractResolver
         {
             protected override List<MemberInfo> GetSerializableMembers(Type objectType)
@@ -137,7 +150,11 @@ namespace Meuzz.Linq.Serialization.Serializers
                 return base.CreateProperties(type, MemberSerialization.Fields);
             }
         }
+#endif
 
+        /// <summary>
+        ///   Json.NETにおけるJSONエンコーディングのカスタマイズを行うクラス。
+        /// </summary>
         class CustomSerializationBinder : DefaultSerializationBinder
         {
             public CustomSerializationBinder(TypeDataManager typeDataManager)
@@ -145,8 +162,8 @@ namespace Meuzz.Linq.Serialization.Serializers
                 _typeDataManager = typeDataManager;
             }
 
-            public override void BindToName(
-                Type serializedType, out string? assemblyName, out string? typeName)
+            /// <inheritdoc/>
+            public override void BindToName(Type serializedType, out string? assemblyName, out string? typeName)
             {
                 if (typeof(ExpressionData).IsAssignableFrom(serializedType) || serializedType == typeof(MemberInfoData) || serializedType == typeof(MethodInfoData))
                 {
@@ -158,13 +175,13 @@ namespace Meuzz.Linq.Serialization.Serializers
                 {
                     assemblyName = null;
                     typeName = $"#{_typeDataManager.Pack(serializedType, true)}";
-
                     return;
                 }
 
                 base.BindToName(serializedType, out assemblyName, out typeName);
             }
 
+            /// <inheritdoc/>
             public override Type BindToType(string? assemblyName, string fullTypeName)
             {
                 try
@@ -175,7 +192,7 @@ namespace Meuzz.Linq.Serialization.Serializers
                             return ((TypeSerialization)int.Parse(fullTypeName.Substring(1))).GetTypeFromExpressionDataType();
 
                         case '#':
-                            return _typeDataManager.UnpackFromName(fullTypeName.Substring(1));
+                            return _typeDataManager.UnpackFromKey(fullTypeName.Substring(1));
                     }
                 }
                 catch (Exception ex)

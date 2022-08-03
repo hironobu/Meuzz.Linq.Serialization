@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using Meuzz.Linq.Serialization.Core;
 
 namespace Meuzz.Linq.Serialization.Core.Expressions
 {
@@ -128,7 +127,7 @@ namespace Meuzz.Linq.Serialization.Core.Expressions
         {
             lock (Instance)
             {
-                var t = typeDataManager.UnpackFromName(Type);
+                var t = typeDataManager.UnpackFromKey(Type);
 
                 if (Instance.TryGetValue((t, Type), out var value))
                 {
@@ -343,7 +342,7 @@ namespace Meuzz.Linq.Serialization.Core.Expressions
 
         public override Expression Unpack(TypeDataManager typeDataManager)
         {
-            var t = typeDataManager.UnpackFromName(Type);
+            var t = typeDataManager.UnpackFromKey(Type);
             return Expression.NewArrayInit(t, Expressions.Select(x => x.Unpack(typeDataManager)));
         }
     }

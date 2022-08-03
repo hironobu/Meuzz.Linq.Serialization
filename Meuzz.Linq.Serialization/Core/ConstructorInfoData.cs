@@ -23,8 +23,8 @@ namespace Meuzz.Linq.Serialization.Core
 
         public ConstructorInfo Unpack(TypeDataManager typeDataManager)
         {
-            var t = DeclaringType != null ? typeDataManager.UnpackFromName(DeclaringType) : null;
-            var ctor = t?.GetConstructor(Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
+            var t = DeclaringType != null ? typeDataManager.UnpackFromKey(DeclaringType) : null;
+            var ctor = t?.GetConstructor(Types.Select(x => typeDataManager.UnpackFromKey(x)).ToArray());
             if (ctor == null)
             {
                 throw new NotImplementedException();

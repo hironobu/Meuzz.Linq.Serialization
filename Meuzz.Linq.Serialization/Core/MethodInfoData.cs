@@ -40,18 +40,18 @@ namespace Meuzz.Linq.Serialization.Core
 
         public MethodInfo Unpack(TypeDataManager typeDataManager)
         {
-            var t = DeclaringType != null ? typeDataManager.UnpackFromName(DeclaringType) : null;
+            var t = DeclaringType != null ? typeDataManager.UnpackFromKey(DeclaringType) : null;
             if (GenericParameterCount > 0)
             {
-                var gmethod = t?.GetGenericMethod(Name, Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
+                var gmethod = t?.GetGenericMethod(Name, Types.Select(x => typeDataManager.UnpackFromKey(x)).ToArray());
                 if (gmethod == null)
                 {
                     throw new NotImplementedException();
                 }
-                return gmethod.MakeGenericMethod(GenericParameterTypes.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
+                return gmethod.MakeGenericMethod(GenericParameterTypes.Select(x => typeDataManager.UnpackFromKey(x)).ToArray());
             }
 
-            var mi = t?.GetMethod(Name, Types.Select(x => typeDataManager.UnpackFromName(x)).ToArray());
+            var mi = t?.GetMethod(Name, Types.Select(x => typeDataManager.UnpackFromKey(x)).ToArray());
             if (mi == null)
             {
                 throw new NotImplementedException();

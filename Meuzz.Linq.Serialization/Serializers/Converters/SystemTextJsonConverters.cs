@@ -9,6 +9,11 @@ using Meuzz.Linq.Serialization.Core.Expressions;
 
 namespace Meuzz.Linq.Serialization.Serializers.Converters
 {
+    // NOTICE:
+    //
+    // System.Text.Json版シリアライザーの実装に先行して用意したJsonConverterクラス。
+    // 現時点(バージョン0系)では使用していない。
+
     public static class TypeHelper
     {
         public static Type? GetTypeFromFullName(string fullTypeName)
@@ -708,7 +713,7 @@ namespace Meuzz.Linq.Serialization.Serializers.Converters
                                         throw new NotImplementedException();
                                     }
                                 }*/
-                                var t = _typeDataManager.UnpackFromName(type);
+                                var t = _typeDataManager.UnpackFromKey(type);
                                 value = JsonSerializer.Deserialize(ref reader, t, options);
                                 break;
                         }

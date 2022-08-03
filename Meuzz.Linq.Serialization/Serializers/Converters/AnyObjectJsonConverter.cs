@@ -5,6 +5,11 @@ using System.Text.Json.Serialization;
 
 namespace Meuzz.Linq.Serialization.Serializers.Converters
 {
+    // NOTICE:
+    //
+    // System.Text.Json版シリアライザーの実装に先行して用意したJsonConverterクラス。
+    // 現時点(バージョン0系)では使用していない。
+
     public class AnyObjectJsonConverter<T> : JsonConverter<T> where T : notnull
     {
         public override bool CanConvert(Type typeToConvert)

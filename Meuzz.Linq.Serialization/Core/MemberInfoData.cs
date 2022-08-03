@@ -27,7 +27,7 @@ namespace Meuzz.Linq.Serialization.Core
 
         public MemberInfo Unpack(TypeDataManager typeDataManager)
         {
-            var t = DeclaringType != null ? typeDataManager.UnpackFromName(DeclaringType) : null;
+            var t = DeclaringType != null ? typeDataManager.UnpackFromKey(DeclaringType) : null;
             if (t == null)
             {
                 throw new NotImplementedException();

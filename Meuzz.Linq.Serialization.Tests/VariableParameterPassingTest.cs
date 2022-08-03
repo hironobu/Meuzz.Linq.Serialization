@@ -17,8 +17,8 @@ namespace Meuzz.Linq.Serialization.Tests
 
             var ff = (Func<SampleItem, bool>)ExpressionSerializer.Deserialize(data);
 #else
-            var data = JsonNetSerializer.Serialize(f);
-            var ff = JsonNetSerializer.Deserialize<Func<SampleItem, bool>>(data);
+            var data = new JsonNetSerializer().Serialize(f);
+            var ff = new JsonNetSerializer().Deserialize<Func<SampleItem, bool>>(data);
 #endif
 
             var ret = ff(obj);

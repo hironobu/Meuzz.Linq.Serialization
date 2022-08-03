@@ -32,7 +32,7 @@ namespace ServerTest
 
                     var s = Encoding.UTF8.GetString(msg);
 
-                    var ff = JsonNetSerializer.Deserialize<Func<SampleItem, bool>>(s);
+                    var ff = new JsonNetSerializer().Deserialize<Func<SampleItem, bool>>(s);
 
                     var ret = ff(new SampleItem(1, "hogehoge"));
                     Console.WriteLine(ret); // assumed "True"

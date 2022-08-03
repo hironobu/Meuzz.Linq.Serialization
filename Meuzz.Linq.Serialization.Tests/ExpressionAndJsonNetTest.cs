@@ -10,9 +10,9 @@ namespace Meuzz.Linq.Serialization.Tests
         [Fact]
         public void TestSerializeAndDeserializeWithImmediateValues()
         {
-            var data = JsonNetSerializer.Serialize<Func<SampleItem, bool>>(x => x.Name == "bbb");
+            var data = new JsonNetSerializer().Serialize<Func<SampleItem, bool>>(x => x.Name == "bbb");
 
-            var ff = JsonNetSerializer.Deserialize<Func<SampleItem, bool>>(data);
+            var ff = new JsonNetSerializer().Deserialize<Func<SampleItem, bool>>(data);
 
             var obj = new SampleItem(1, "bbb");
 
@@ -25,9 +25,9 @@ namespace Meuzz.Linq.Serialization.Tests
         public void TestSerializeAndDeserializeWithVariables()
         {
             var s = "bbb";
-            var data = JsonNetSerializer.Serialize<Func<SampleItem, bool>>(x => x.Name == s);
+            var data = new JsonNetSerializer().Serialize<Func<SampleItem, bool>>(x => x.Name == s);
 
-            var ff = JsonNetSerializer.Deserialize<Func<SampleItem, bool>>(data);
+            var ff = new JsonNetSerializer().Deserialize<Func<SampleItem, bool>>(data);
 
             var obj = new SampleItem(1, "bbb");
 

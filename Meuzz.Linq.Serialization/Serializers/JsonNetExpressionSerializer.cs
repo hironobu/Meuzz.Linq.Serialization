@@ -12,58 +12,6 @@ using Newtonsoft.Json.Serialization;
 
 namespace Meuzz.Linq.Serialization.Serializers
 {
-    public class CustomSerializationBinder : DefaultSerializationBinder
-    {
-        public CustomSerializationBinder(TypeDataManager typeDataManager)
-        {
-            _typeDataManager = typeDataManager;
-        }
-
-        public override void BindToName(
-            Type serializedType, out string? assemblyName, out string? typeName)
-        {
-            if (typeof(ExpressionData).IsAssignableFrom(serializedType) || serializedType == typeof(MemberInfoData) || serializedType == typeof(MethodInfoData))
-            {
-                assemblyName = null;
-                typeName = $"@{(int)serializedType.GetExpressionDataType()}";
-                return;
-            }
-            else if (_typeDataManager.IsUsingFieldSpecs(serializedType) || serializedType.FullName.Contains('+') == true)
-            {
-                assemblyName = null;
-                typeName = $"#{_typeDataManager.Pack(serializedType, true)}";
-
-                return;
-            }
-
-            base.BindToName(serializedType, out assemblyName, out typeName);
-        }
-
-        public override Type BindToType(string? assemblyName, string fullTypeName)
-        {
-            try
-            {
-                switch (fullTypeName[0])
-                {
-                    case '@':
-                        return ((TypeSerialization)int.Parse(fullTypeName.Substring(1))).GetTypeFromExpressionDataType();
-
-                    case '#':
-                        return _typeDataManager.UnpackFromName(fullTypeName.Substring(1));
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex);
-            }
-
-            return base.BindToType(assemblyName, fullTypeName);
-        }
-
-        private TypeDataManager _typeDataManager;
-    }
-
-
     public enum TypeSerialization
     {
         Default = 1,
@@ -112,9 +60,9 @@ namespace Meuzz.Linq.Serialization.Serializers
         };
     }
 
-    public static class JsonNetSerializer
+    public class JsonNetSerializer : ExpressionSerializer
     {
-        public static object Serialize<T>(Expression<T> f)
+        public override object Serialize<T>(Expression<T> f)
         {
             var typeDataManager = new TypeDataManager();
             var data = ExpressionData.Pack(f, typeDataManager);
@@ -134,7 +82,7 @@ namespace Meuzz.Linq.Serialization.Serializers
             return s2;
         }
 
-        public static T Deserialize<T>(object o) where T : Delegate
+        public override T Deserialize<T>(object o)
         {
             var typeDataManager = new TypeDataManager();
             var packet = JsonConvert.DeserializeObject<ExpressionPacket>((string)o, new JsonSerializerSettings());
@@ -188,6 +136,57 @@ namespace Meuzz.Linq.Serialization.Serializers
             {
                 return base.CreateProperties(type, MemberSerialization.Fields);
             }
+        }
+
+        class CustomSerializationBinder : DefaultSerializationBinder
+        {
+            public CustomSerializationBinder(TypeDataManager typeDataManager)
+            {
+                _typeDataManager = typeDataManager;
+            }
+
+            public override void BindToName(
+                Type serializedType, out string? assemblyName, out string? typeName)
+            {
+                if (typeof(ExpressionData).IsAssignableFrom(serializedType) || serializedType == typeof(MemberInfoData) || serializedType == typeof(MethodInfoData))
+                {
+                    assemblyName = null;
+                    typeName = $"@{(int)serializedType.GetExpressionDataType()}";
+                    return;
+                }
+                else if (_typeDataManager.IsUsingFieldSpecs(serializedType) || serializedType.FullName.Contains('+') == true)
+                {
+                    assemblyName = null;
+                    typeName = $"#{_typeDataManager.Pack(serializedType, true)}";
+
+                    return;
+                }
+
+                base.BindToName(serializedType, out assemblyName, out typeName);
+            }
+
+            public override Type BindToType(string? assemblyName, string fullTypeName)
+            {
+                try
+                {
+                    switch (fullTypeName[0])
+                    {
+                        case '@':
+                            return ((TypeSerialization)int.Parse(fullTypeName.Substring(1))).GetTypeFromExpressionDataType();
+
+                        case '#':
+                            return _typeDataManager.UnpackFromName(fullTypeName.Substring(1));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex);
+                }
+
+                return base.BindToType(assemblyName, fullTypeName);
+            }
+
+            private TypeDataManager _typeDataManager;
         }
     }
 }

@@ -25,7 +25,7 @@ namespace TcpClient
                 Console.WriteLine("Socket created to {0}", client.RemoteEndPoint?.ToString());
 
                 var ss = "hogehoge";
-                var s = JsonNetSerializer.Serialize<Func<SampleItem, bool>>(x => x.Name == ss);
+                var s = new JsonNetSerializer().Serialize<Func<SampleItem, bool>>(x => x.Name == ss);
                 var data = Encoding.UTF8.GetBytes((string)s);
 
                 int n = client.Send(data);
